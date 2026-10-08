@@ -2,10 +2,6 @@
     box-sizing: border-box;
 }
 
-/* =========================================================
-   DOMYŚLNY MOTYW – JASNY
-   ========================================================= */
-
 body {
     margin: 0;
     padding: 0;
@@ -77,24 +73,20 @@ body {
     font-size: 15px;
 }
 
-
-/* =========================================================
+/* =========================
    HEADER
-   ========================================================= */
+   ========================= */
 
 .admin-header {
     width: 100%;
     min-height: 80px;
     padding: 15px 25px;
-
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 25px;
-
     background: #ffffff;
     border-bottom: 2px solid #d6d9de;
-
     color: #222;
 }
 
@@ -105,10 +97,9 @@ body {
     color: #222;
 }
 
-
-/* =========================================================
-   GRUPA TOGGLE
-   ========================================================= */
+/* =========================
+   TOGGLE
+   ========================= */
 
 .header-toggles {
     display: flex;
@@ -128,18 +119,11 @@ body {
     white-space: nowrap;
 }
 
-
-/* =========================================================
-   SWITCH
-   ========================================================= */
-
 .switch {
     position: relative;
     display: inline-block;
-
     width: 52px;
     height: 28px;
-
     flex-shrink: 0;
 }
 
@@ -149,59 +133,31 @@ body {
     height: 0;
 }
 
-
-/* Tor przełącznika */
-
 .slider {
     position: absolute;
     inset: 0;
-
     cursor: pointer;
-
     background: #c9cdd3;
-
     border-radius: 999px;
-
-    transition:
-        background 0.25s ease,
-        box-shadow 0.25s ease;
+    transition: background 0.25s ease, box-shadow 0.25s ease;
 }
-
-
-/* Kółko */
 
 .slider::before {
     content: "";
-
     position: absolute;
-
     width: 22px;
     height: 22px;
-
     left: 3px;
     top: 3px;
-
     background: #ffffff;
-
     border-radius: 50%;
-
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
-
-    transition:
-        transform 0.25s ease;
+    transition: transform 0.25s ease;
 }
-
-
-/* Aktywny */
 
 .switch input:checked + .slider::before {
     transform: translateX(24px);
 }
-
-
-/* =========================================================
-   TOGGLE – TRYB CIEMNY
-   ========================================================= */
 
 .theme-slider {
     background: #bfc3c9;
@@ -211,11 +167,6 @@ body {
     background: #333333;
 }
 
-
-/* =========================================================
-   TOGGLE – ADMIN
-   ========================================================= */
-
 .admin-slider {
     background: #c9cdd3;
 }
@@ -224,82 +175,18 @@ body {
     background: #4caf50;
 }
 
-
-/* Efekt focus dla klawiatury */
-
 .switch input:focus-visible + .slider {
     outline: 3px solid rgba(76, 175, 80, 0.35);
     outline-offset: 2px;
 }
 
-
-/* =========================================================
-   CIEMNY HEADER
-   ========================================================= */
-
-body.dark-mode .admin-header {
-    background: #1c1c20;
-    border-color: #2e2e33;
-    color: #e6e6e6;
-}
-
-body.dark-mode .admin-header h1 {
-    color: #e6e6e6;
-}
-
-body.dark-mode .toggle-label {
-    color: #e6e6e6;
-}
-
-body.dark-mode .theme-slider {
-    background: #4caf50;
-}
-
-body.dark-mode .admin-slider {
-    background: #4caf50;
-}
-
-
-/* =========================================================
-   ELEMENTY TYLKO DLA ADMINA
-   ========================================================= */
+/* =========================
+   ELEMENTY ADMINA
+   ========================= */
 
 body.public-view .admin-only {
     display: none !important;
 }
-
-
-/* =========================================================
-   MOBILE
-   ========================================================= */
-
-@media (max-width: 650px) {
-
-    .admin-header {
-        padding: 12px 15px;
-
-        flex-direction: column;
-        align-items: stretch;
-
-        gap: 15px;
-    }
-
-    .admin-header h1 {
-        text-align: center;
-        font-size: 22px;
-    }
-
-    .header-toggles {
-        justify-content: center;
-        flex-wrap: wrap;
-        gap: 15px 20px;
-    }
-
-    .toggle-label {
-        font-size: 14px;
-    }
-}
-
 
 /* =========================
    GRUPA TABELI
@@ -325,19 +212,11 @@ body.public-view .admin-only {
     color: #2e7d32;
 }
 
-/* =========================
-   KONTENER TABELI
-   ========================= */
-
 .table-container {
     width: 100%;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
 }
-
-/* =========================
-   TABELA
-   ========================= */
 
 .table-data {
     width: 100%;
@@ -353,7 +232,6 @@ body.public-view .admin-only {
     border: 2px solid #d6d9de;
 }
 
-/* Nagłówki */
 .table-data thead > tr:first-child th {
     padding: 10px 12px;
     font-size: 15px;
@@ -363,7 +241,6 @@ body.public-view .admin-only {
     white-space: nowrap;
 }
 
-/* Dane */
 .table-data tbody td {
     padding: 7px 12px;
     height: 44px;
@@ -373,7 +250,6 @@ body.public-view .admin-only {
     white-space: nowrap;
 }
 
-/* Efekt po najechaniu */
 .table-data tbody tr:hover {
     background: #f1f3f5;
 }
@@ -433,10 +309,6 @@ body.public-view .admin-only {
     filter: brightness(1.15);
 }
 
-.submit-button {
-    background: #4caf50;
-}
-
 .edit-button {
     background: #ff9800;
 }
@@ -445,21 +317,8 @@ body.public-view .admin-only {
     background: #e53935;
 }
 
-/* =========================
-   PUSTY WIERSZ
-   ========================= */
-
-.empty-row td {
-    padding: 10px;
-    color: #e53935;
-    font-style: italic;
-}
-
-
 /* =========================================================
    MOTYW CIEMNY
-   Dodawany przez:
-   body.dark-mode
    ========================================================= */
 
 body.dark-mode {
@@ -471,7 +330,27 @@ body.dark-mode #data-tables-section {
     background: #0f0f11;
 }
 
-/* Panel wyszukiwania */
+body.dark-mode .admin-header {
+    background: #1c1c20;
+    border-color: #2e2e33;
+    color: #e6e6e6;
+}
+
+body.dark-mode .admin-header h1 {
+    color: #e6e6e6;
+}
+
+body.dark-mode .toggle-label {
+    color: #e6e6e6;
+}
+
+body.dark-mode .theme-slider {
+    background: #4caf50;
+}
+
+body.dark-mode .admin-slider {
+    background: #4caf50;
+}
 
 body.dark-mode #search-panel {
     background: #1c1c20;
@@ -496,8 +375,6 @@ body.dark-mode #search-info {
     color: #b5b5b5;
 }
 
-/* Grupy tabel */
-
 body.dark-mode .table-group {
     background: #16161a;
     border-color: #2e2e33;
@@ -511,8 +388,6 @@ body.dark-mode .table-group.no-results {
 body.dark-mode .table-name {
     color: #4caf50;
 }
-
-/* Tabele */
 
 body.dark-mode .table-data {
     background: #16161a;
@@ -538,8 +413,6 @@ body.dark-mode .table-data tbody tr.search-match {
     background: #242c25;
 }
 
-/* Filtry */
-
 body.dark-mode .filter-row th {
     background: #18181c;
 }
@@ -554,104 +427,90 @@ body.dark-mode .filter-input:focus {
     border-color: #4caf50;
 }
 
-/* Pusty wiersz */
-
-body.dark-mode .empty-row td {
-    color: #e53935;
-}
-
-
 /* =========================================================
-   TABLET
+   RESPONSYWNOŚĆ
    ========================================================= */
 
 @media (max-width: 1000px) {
-
     #data-tables-section {
         padding: 15px;
     }
-
     .table-group {
         padding: 12px;
     }
-
     .table-name {
         font-size: 20px;
     }
-
     .table-data tbody td {
         font-size: 17px;
         padding: 6px 10px;
     }
 }
 
-
-/* =========================================================
-   TELEFON
-   ========================================================= */
-
 @media (max-width: 650px) {
-
+    .admin-header {
+        padding: 12px 15px;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 15px;
+    }
+    .admin-header h1 {
+        text-align: center;
+        font-size: 22px;
+    }
+    .header-toggles {
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 15px 20px;
+    }
+    .toggle-label {
+        font-size: 14px;
+    }
     #data-tables-section {
         padding: 8px;
     }
-
     #search-panel {
         padding: 10px;
         margin-bottom: 12px;
     }
-
     #search-wrapper {
         flex-direction: column;
         gap: 8px;
     }
-
     #global-search {
         width: 100%;
         height: 44px;
         font-size: 16px;
     }
-
     #clear-search {
         width: 100%;
         height: 42px;
         flex: none;
     }
-
-    #search-info {
-        font-size: 14px;
-    }
-
     .table-group {
         padding: 8px;
         margin-bottom: 12px;
     }
-
     .table-name {
         margin-bottom: 10px;
         font-size: 18px;
     }
-
     .table-data {
         min-width: 900px;
     }
-
     .table-data thead > tr:first-child th {
         padding: 8px 10px;
         font-size: 14px;
     }
-
     .table-data tbody td {
         padding: 6px 9px;
         height: 42px;
         font-size: 17px;
     }
-
     .filter-input {
         height: 32px;
         font-size: 13px;
     }
-
     .actions button {
         min-width: 70px;
         height: 34px;
