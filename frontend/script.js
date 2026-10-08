@@ -80,9 +80,9 @@ async function getData() {
                         <td class="admin-only">${ip}</td>
                         <td class="actions admin-only">
                             <button class="edit-button">Edit</button>
-                            <button class="delete-button">Delete</button>
+                            <button class="delete-button" data-id=${user_id}>Delete</button>
                         </td>
-                    </tr>
+                    </tr>ń
                 `;
             });
 
@@ -290,4 +290,36 @@ function initSearchAndFilters() {
 
     // Pierwsze uruchomienie filtrowania po załadowaniu danych
     filterAll();
+
+
+    document.addEventListener("click", async (event) => {
+        if (event.target.classList.contains("delete-button")) {
+            const button = event.target;
+            const userId = button.getAttribute("data-id");
+
+            if(!userId) return;
+            if(!confirm(`Czy na pewno chcesz usunąć użytkownika o ID: ${userId}`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`http://localhost:8000/api/userdata/${userId}`, {
+                    method: 'DELETE',
+                });
+
+                if(!response.ok) {
+                    throw new Error(`Błąd usuwania. Status: ${response.status}`);
+                }
+                    const row = button.closest("tr");
+                    if (row) {
+                        row.remove();
+                        filterAll();
+                    }
+
+            } catch (error) {
+                console.error("Nie udało się usunąć użytkownika: ", error)
+                alert("Wystąpił błąd podczas usuwania użytkownika")
+            }
+        }
+    })
 }
