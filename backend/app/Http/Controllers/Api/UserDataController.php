@@ -20,7 +20,7 @@ class UserDataController extends Controller
             'designation'  => 'nullable|string|max:255',
             'name'         => 'required|string|max:255',
             'last_name'    => 'required|string|max:255',
-            'email' => 'required|email|unique:userdata,email',
+            'email'        => 'required|email|unique:userdata,email',
             'phone_number' => 'nullable|string|max:20',
             'room_number'  => 'nullable|string|max:50',
             'ip_number'    => 'nullable|string|max:45',

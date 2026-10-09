@@ -22,18 +22,19 @@ class SectionController
 
         return response()->json($section, 201);
     }
+
     public function destroy($id)
-{
-    $section = Section::withCount('users')->findOrFail($id);
+    {
+        $section = Section::withCount('users')->findOrFail($id);
 
-    if ($section->users_count > 0) {
-        return response()->json([
-            'message' => 'Nie można usunąć działu, który zawiera użytkowników.'
-        ], 409);
+        if ($section->users_count > 0) {
+            return response()->json([
+                'message' => 'Nie można usunąć działu, który zawiera użytkowników.'
+            ], 409);
+        }
+
+        $section->delete();
+
+        return response()->json(['message' => 'Dział został usunięty']);
     }
-
-    $section->delete();
-
-    return response()->json(['message' => 'Dział został usunięty']);
-}
 }
