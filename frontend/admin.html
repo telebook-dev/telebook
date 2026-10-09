@@ -14,10 +14,29 @@
 </head>
 <body class="auth-checking">
 
+<!-- =========================
+     HEADER
+     ========================= -->
 <header class="admin-header">
     <h1>Panel Admina</h1>
     <button type="button" onclick="logout()">Wyloguj</button>
     <div class="header-toggles">
+        <div class="toggle-item admin-only">
+            <span class="toggle-label">Dodaj dział</span>
+            <label class="switch">
+                <input type="checkbox" id="section-add-toggle" data-panel-toggle="section-add-panel" checked>
+                <span class="slider panel-slider"></span>
+            </label>
+        </div>
+
+        <div class="toggle-item admin-only">
+            <span class="toggle-label">Dodaj użytkownika</span>
+            <label class="switch">
+                <input type="checkbox" id="user-add-toggle" data-panel-toggle="user-add-panel" checked>
+                <span class="slider panel-slider"></span>
+            </label>
+        </div>
+
         <div class="toggle-item">
             <span class="toggle-label">Tryb ciemny</span>
             <label class="switch">
@@ -37,6 +56,88 @@
 </header>
 
 <section id="data-tables-section">
+
+    <!-- =========================
+         PANEL ADMINA
+         ========================= -->
+    <div id="admin-panel" class="admin-only">
+
+        <!-- Dodaj dział (pasek na całą szerokość) -->
+        <section class="section-add" id="section-add-panel">
+            <h2 class="panel-title">Dodaj dział</h2>
+
+            <form id="add-section-form" class="section-add-form">
+                <input type="text" id="add-section-name" placeholder="Nazwa działu" required autocomplete="off">
+                <button type="submit" class="plus-button" title="Dodaj dział" aria-label="Dodaj dział">+</button>
+            </form>
+        </section>
+
+        <!-- Dodaj użytkownika -->
+        <section class="user-add" id="user-add-panel">
+            <h2 class="panel-title">Dodaj użytkownika</h2>
+
+            <form id="add-user-form" class="user-add-form">
+
+                <div class="form-field f-id">
+                    <label for="add-id">Id</label>
+                    <input type="text" id="add-id" class="id-input" placeholder="AUTO" title="Nadawane automatycznie" disabled>
+                </div>
+
+                <div class="form-field f-phone">
+                    <label for="add-phone">Nr telefonu</label>
+                    <input type="tel" id="add-phone" placeholder="np. 123 456 789"
+                           inputmode="tel" pattern="[0-9+\- ]*" maxlength="20">
+                </div>
+
+                <div class="form-field f-room">
+                    <label for="add-room">Nr pokoju</label>
+                    <input type="text" id="add-room" placeholder="Nr pokoju">
+                </div>
+
+                <div class="form-field f-section">
+                    <label for="add-section-id">Dział</label>
+                    <select id="add-section-id" required>
+                        <option value="" disabled selected>Wybierz dział...</option>
+                    </select>
+                </div>
+
+                <div class="form-field f-designation">
+                    <label for="add-designation">Oznaczenie użytkownika</label>
+                    <input type="text" id="add-designation" placeholder="np. IT-01">
+                </div>
+
+                <div class="form-field f-name">
+                    <label for="add-name">Imię</label>
+                    <input type="text" id="add-name" placeholder="Imię" required>
+                </div>
+
+                <div class="form-field f-last-name">
+                    <label for="add-last-name">Nazwisko</label>
+                    <input type="text" id="add-last-name" placeholder="Nazwisko" required>
+                </div>
+
+                <div class="form-field f-email">
+                    <label for="add-email">Adres pocztowy elektroniczny</label>
+                    <input type="email" id="add-email" placeholder="jan.kowalski@firma.pl" required>
+                </div>
+
+                <div class="form-field f-ip">
+                    <label for="add-ip">Ip</label>
+                    <input type="text" id="add-ip" placeholder="np. 192.168.0.10">
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="add-user-button">Dodaj użytkownika</button>
+                </div>
+
+            </form>
+        </section>
+
+    </div>
+
+    <!-- =========================
+         WYSZUKIWANIE
+         ========================= -->
     <div id="search-panel">
         <div id="search-wrapper">
             <input type="search" id="global-search" placeholder="Szukaj użytkownika we wszystkich działach..." autocomplete="off">
@@ -46,8 +147,45 @@
         <div id="search-info">Wszyscy użytkownicy</div>
     </div>
 
+    <!-- =========================
+         TABELE (generowane w script.js)
+         ========================= -->
     <div id="dynamic-tables-container"></div>
+
 </section>
+
+<!-- Ukrywanie paneli "Dodaj dział" / "Dodaj użytkownika" (stan zapamiętywany w przeglądarce) -->
+<script>
+
+    // AI bullshit
+(function () {
+    var STORAGE_KEY = 'telebook-panels-visible';
+    var state = {};
+
+    try {
+        state = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+    } catch (e) {}
+
+    document.querySelectorAll('[data-panel-toggle]').forEach(function (input) {
+        var panel = document.getElementById(input.dataset.panelToggle);
+        if (!panel) return;
+
+        if (state[panel.id] === false) {
+            input.checked = false;
+        }
+        panel.hidden = !input.checked;
+
+        input.addEventListener('change', function () {
+            panel.hidden = !input.checked;
+            state[panel.id] = input.checked;
+
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            } catch (e) {}
+        });
+    });
+})();
+</script>
 
 <script src="script.js"></script>
 

@@ -19,61 +19,6 @@ body {
 }
 
 /* =========================
-   PANEL WYSZUKIWANIA
-   ========================= */
-
-#search-panel {
-    margin-bottom: 20px;
-    padding: 15px;
-    background: #ffffff;
-    border: 2px solid #d6d9de;
-}
-
-#search-wrapper {
-    display: flex;
-    gap: 10px;
-    align-items: stretch;
-}
-
-#global-search {
-    flex: 1;
-    min-width: 0;
-    height: 48px;
-    padding: 8px 12px;
-    font-size: 18px;
-    border: 2px solid #c9cdd3;
-    background: #ffffff;
-    color: #222;
-    outline: none;
-}
-
-#global-search:focus {
-    border-color: #4caf50;
-}
-
-#clear-search {
-    flex: 0 0 130px;
-    height: 48px;
-    padding: 0 15px;
-    border: none;
-    background: #4caf50;
-    color: white;
-    cursor: pointer;
-    font-size: 16px;
-    font-weight: bold;
-}
-
-#clear-search:hover {
-    background: #388e3c;
-}
-
-#search-info {
-    margin-top: 8px;
-    color: #666;
-    font-size: 15px;
-}
-
-/* =========================
    HEADER
    ========================= */
 
@@ -95,6 +40,7 @@ body {
     font-size: 26px;
     line-height: 1.2;
     color: #222;
+    white-space: nowrap;
 }
 
 /* =========================
@@ -175,6 +121,14 @@ body {
     background: #4caf50;
 }
 
+.panel-slider {
+    background: #c9cdd3;
+}
+
+.switch input:checked + .panel-slider {
+    background: #4caf50;
+}
+
 .switch input:focus-visible + .slider {
     outline: 3px solid rgba(76, 175, 80, 0.35);
     outline-offset: 2px;
@@ -186,6 +140,261 @@ body {
 
 body.public-view .admin-only {
     display: none !important;
+}
+
+/* =========================
+   PANEL ADMINA (dział + użytkownik)
+   ========================= */
+
+#admin-panel {
+    display: block;
+}
+
+.user-add,
+.section-add {
+    margin-bottom: 20px;
+    padding: 18px 20px;
+    background: #ffffff;
+    border: 2px solid #d6d9de;
+}
+
+.panel-title {
+    margin: 0 0 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #eef0f2;
+    font-size: 20px;
+    line-height: 1.3;
+    color: #2e7d32;
+}
+
+.panel-hint {
+    margin: 12px 0 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #666;
+}
+
+/* --- ukrywanie całych paneli (przełączniki w headerze) --- */
+
+.section-add[hidden],
+.user-add[hidden] {
+    display: none !important;
+}
+
+/* --- "Dodaj dział": pasek na całą szerokość --- */
+
+.section-add {
+    display: flex;
+    align-items: center;
+    gap: 25px;
+    padding: 12px 20px;
+}
+
+.section-add .panel-title {
+    flex: 0 0 auto;
+    margin: 0;
+    padding: 0;
+    border-bottom: 0;
+    white-space: nowrap;
+}
+
+/* --- formularz użytkownika: 4 kolumny w kolejności jak w tabeli --- */
+
+.user-add-form {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 14px 16px;
+    align-items: end;
+}
+
+/* rząd 1: Id (wąskie) · telefon · pokój · dział · oznaczenie */
+.user-add-form .f-id          { grid-column: span 1; }
+.user-add-form .f-phone       { grid-column: span 3; }
+.user-add-form .f-room        { grid-column: span 2; }
+.user-add-form .f-section     { grid-column: span 3; }
+.user-add-form .f-designation { grid-column: span 3; }
+
+/* rząd 2: imię · nazwisko · e-mail · ip · przycisk */
+.user-add-form .f-name        { grid-column: span 2; }
+.user-add-form .f-last-name   { grid-column: span 2; }
+.user-add-form .f-email       { grid-column: span 3; }
+.user-add-form .f-ip          { grid-column: span 2; }
+
+.form-field {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: 5px;
+    min-width: 0;
+}
+
+.form-field label {
+    font-size: 13px;
+    line-height: 1.2;
+    font-weight: bold;
+    color: #444;
+}
+
+.form-field input,
+.form-field select,
+.section-add-form input {
+    width: 100%;
+    height: 42px;
+    padding: 6px 10px;
+    border: 2px solid #c9cdd3;
+    background: #ffffff;
+    color: #222;
+    font-size: 16px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s ease;
+}
+
+.form-field input:focus,
+.form-field select:focus,
+.section-add-form input:focus {
+    border-color: #4caf50;
+}
+
+.form-field input:disabled {
+    background: #eef0f2;
+    color: #888;
+    cursor: not-allowed;
+}
+
+.form-field input:invalid:not(:placeholder-shown) {
+    border-color: #e53935;
+}
+
+.form-field input.id-input {
+    padding: 6px 4px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+
+/* przycisk w drugim rzędzie, po polu Ip */
+.user-add-form .form-actions {
+    grid-column: span 3;
+    display: flex;
+}
+
+.add-user-button {
+    width: 100%;
+    height: 42px;
+    padding: 0 20px;
+    border: none;
+    background: #4caf50;
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.add-user-button:hover {
+    background: #388e3c;
+}
+
+/* --- formularz działu: pole + plusik --- */
+
+.section-add-form {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.section-add-form input {
+    flex: 1;
+    min-width: 0;
+}
+
+.plus-button {
+    flex: 0 0 42px;
+    width: 42px;
+    height: 42px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: #4caf50;
+    color: #ffffff;
+    font-size: 28px;
+    line-height: 1;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.plus-button:hover {
+    background: #388e3c;
+}
+
+.plus-button:active {
+    transform: scale(0.92);
+}
+
+.plus-button:focus-visible,
+.add-user-button:focus-visible,
+.delete-section-button:focus-visible {
+    outline: 3px solid rgba(76, 175, 80, 0.35);
+    outline-offset: 2px;
+}
+
+/* =========================
+   PANEL WYSZUKIWANIA
+   ========================= */
+
+#search-panel {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #ffffff;
+    border: 2px solid #d6d9de;
+}
+
+#search-wrapper {
+    display: flex;
+    gap: 10px;
+    align-items: stretch;
+}
+
+#global-search {
+    flex: 1;
+    min-width: 0;
+    height: 48px;
+    padding: 8px 12px;
+    font-size: 18px;
+    border: 2px solid #c9cdd3;
+    background: #ffffff;
+    color: #222;
+    outline: none;
+}
+
+#global-search:focus {
+    border-color: #4caf50;
+}
+
+#clear-search {
+    flex: 0 0 130px;
+    height: 48px;
+    padding: 0 15px;
+    border: none;
+    background: #4caf50;
+    color: white;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+#clear-search:hover {
+    background: #388e3c;
+}
+
+#search-info {
+    margin-top: 8px;
+    color: #666;
+    font-size: 15px;
 }
 
 /* =========================
@@ -210,6 +419,41 @@ body.public-view .admin-only {
     font-size: 22px;
     line-height: 1.3;
     color: #2e7d32;
+}
+
+/* --- nagłówek grupy + usuwanie pustego działu --- */
+
+.table-header {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 36px;
+    margin-bottom: 15px;
+}
+
+.table-header .table-name {
+    margin: 0;
+}
+
+.delete-section-button {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 36px;
+    padding: 0 14px;
+    border: none;
+    border-radius: 3px;
+    background: #e53935;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.delete-section-button:hover {
+    filter: brightness(1.15);
 }
 
 .table-container {
@@ -352,6 +596,48 @@ body.dark-mode .admin-slider {
     background: #4caf50;
 }
 
+/* --- panel admina --- */
+
+body.dark-mode .user-add,
+body.dark-mode .section-add {
+    background: #16161a;
+    border-color: #2e2e33;
+}
+
+body.dark-mode .panel-title {
+    color: #4caf50;
+    border-color: #2e2e33;
+}
+
+body.dark-mode .panel-hint {
+    color: #b5b5b5;
+}
+
+body.dark-mode .form-field label {
+    color: #c9c9c9;
+}
+
+body.dark-mode .form-field input,
+body.dark-mode .form-field select,
+body.dark-mode .section-add-form input {
+    background: #16161a;
+    color: #e6e6e6;
+    border-color: #2e2e33;
+}
+
+body.dark-mode .form-field input:focus,
+body.dark-mode .form-field select:focus,
+body.dark-mode .section-add-form input:focus {
+    border-color: #4caf50;
+}
+
+body.dark-mode .form-field input:disabled {
+    background: #1c1c20;
+    color: #777;
+}
+
+/* --- wyszukiwarka i tabele --- */
+
 body.dark-mode #search-panel {
     background: #1c1c20;
     border-color: #2e2e33;
@@ -435,6 +721,13 @@ body.dark-mode .filter-input:focus {
     #data-tables-section {
         padding: 15px;
     }
+    .user-add-form {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .user-add-form .form-field,
+    .user-add-form .form-actions {
+        grid-column: auto;
+    }
     .table-group {
         padding: 12px;
     }
@@ -469,6 +762,31 @@ body.dark-mode .filter-input:focus {
     #data-tables-section {
         padding: 8px;
     }
+    .user-add,
+    .section-add {
+        padding: 12px;
+        margin-bottom: 12px;
+    }
+    .panel-title {
+        font-size: 18px;
+    }
+    .user-add-form {
+        grid-template-columns: 1fr;
+    }
+    .user-add-form .form-actions {
+        grid-column: 1 / -1;
+    }
+    .section-add {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+    .section-add-form {
+        flex: none;
+    }
+    .section-add-form {
+        max-width: none;
+    }
     #search-panel {
         padding: 10px;
         margin-bottom: 12px;
@@ -494,6 +812,16 @@ body.dark-mode .filter-input:focus {
     .table-name {
         margin-bottom: 10px;
         font-size: 18px;
+    }
+    .table-header {
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 10px;
+    }
+    .delete-section-button {
+        position: static;
+        transform: none;
+        width: 100%;
     }
     .table-data {
         min-width: 900px;

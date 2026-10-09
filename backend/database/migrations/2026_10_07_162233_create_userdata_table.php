@@ -10,19 +10,18 @@ return new class extends Migration
      * Run the migrations.
      */
     public function up(): void
-    {
-        Schema::create('userdata', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('section_id')
-                ->constrained('sections');
-            $table->string('designation');
-            $table->string('name');
-            $table->string('last_name');
-            $table->string('email')->unique();
-            $table->string('phone_number')->unique();
-            $table->timestamps();
-        });
-    }
+{
+    Schema::create('userdata', function (Blueprint $table) {
+        $table->id();
+        $table->foreignId('section_id')->constrained('sections')->restrictOnDelete();
+        $table->string('designation')->nullable();
+        $table->string('name');
+        $table->string('last_name');
+        $table->string('email')->unique();
+        $table->string('phone_number')->nullable();
+        $table->timestamps();
+    });
+}
 
     /**
      * Reverse the migrations.
