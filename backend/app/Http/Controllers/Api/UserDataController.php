@@ -28,4 +28,14 @@ class UserDataController extends Controller
         ]);
         return $user->load('section', 'details');
     }
+    public function destroy($id)
+    {
+        $user = UserData::findOrFail($id);
+
+        $user->delete();
+
+        return response()->json([
+            'message' => 'Użytkownik został usunięty'
+        ]);
+    }
 }

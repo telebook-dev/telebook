@@ -15,7 +15,8 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_data_id')
                 ->unique()
-                ->constrained('userdata');
+                ->constrained('userdata')
+                ->cascadeOnDelete();
             $table->string('room_number');
             $table->string('ip_number');
             $table->timestamps();

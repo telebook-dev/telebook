@@ -1,26 +1,42 @@
-# --- IDE ---
+# IDE / Edytory
 .idea/
 *.iml
 .vscode/
 
-# --- Node.js / Pakiety ---
+
+# Node.js
 node_modules/
+
+# Logi
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# --- Zmienne środowiskowe i poufne dane ---
+# Environment / Sekrety
 .env
 .env.local
 .env.*.local
 
-# --- Build / Produkcja (Vite / Frontend) ---
+# Build / Production
 dist/
 dist-ssr/
-*.local
+build/
+coverage/
 
-# --- Systemowe ---
+# Frontend / Vite
+.vite/
+
+# Cache
+.cache/
+.parcel-cache/
+
+# System
 .DS_Store
 Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
