@@ -40,6 +40,7 @@ body {
     font-size: 26px;
     line-height: 1.2;
     color: #222;
+    white-space: nowrap;
 }
 
 /* =========================
@@ -120,6 +121,14 @@ body {
     background: #4caf50;
 }
 
+.panel-slider {
+    background: #c9cdd3;
+}
+
+.switch input:checked + .panel-slider {
+    background: #4caf50;
+}
+
 .switch input:focus-visible + .slider {
     outline: 3px solid rgba(76, 175, 80, 0.35);
     outline-offset: 2px;
@@ -138,11 +147,7 @@ body.public-view .admin-only {
    ========================= */
 
 #admin-panel {
-    display: grid;
-    grid-template-columns: 340px minmax(0, 1fr);
-    gap: 20px;
-    align-items: start;
-    margin-bottom: 20px;
+    display: block;
 }
 
 .user-add,
@@ -151,11 +156,6 @@ body.public-view .admin-only {
     padding: 18px 20px;
     background: #ffffff;
     border: 2px solid #d6d9de;
-}
-
-#admin-panel .section-add,
-#admin-panel .user-add {
-    margin-bottom: 0;
 }
 
 .panel-title {
@@ -174,23 +174,63 @@ body.public-view .admin-only {
     color: #666;
 }
 
+/* --- ukrywanie całych paneli (przełączniki w headerze) --- */
+
+.section-add[hidden],
+.user-add[hidden] {
+    display: none !important;
+}
+
+/* --- "Dodaj dział": pasek na całą szerokość --- */
+
+.section-add {
+    display: flex;
+    align-items: center;
+    gap: 25px;
+    padding: 12px 20px;
+}
+
+.section-add .panel-title {
+    flex: 0 0 auto;
+    margin: 0;
+    padding: 0;
+    border-bottom: 0;
+    white-space: nowrap;
+}
+
 /* --- formularz użytkownika: 4 kolumny w kolejności jak w tabeli --- */
 
 .user-add-form {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(12, minmax(0, 1fr));
     gap: 14px 16px;
+    align-items: end;
 }
+
+/* rząd 1: Id (wąskie) · telefon · pokój · dział · oznaczenie */
+.user-add-form .f-id          { grid-column: span 1; }
+.user-add-form .f-phone       { grid-column: span 3; }
+.user-add-form .f-room        { grid-column: span 2; }
+.user-add-form .f-section     { grid-column: span 3; }
+.user-add-form .f-designation { grid-column: span 3; }
+
+/* rząd 2: imię · nazwisko · e-mail · ip · przycisk */
+.user-add-form .f-name        { grid-column: span 2; }
+.user-add-form .f-last-name   { grid-column: span 2; }
+.user-add-form .f-email       { grid-column: span 3; }
+.user-add-form .f-ip          { grid-column: span 2; }
 
 .form-field {
     display: flex;
     flex-direction: column;
+    justify-content: flex-end;
     gap: 5px;
     min-width: 0;
 }
 
 .form-field label {
     font-size: 13px;
+    line-height: 1.2;
     font-weight: bold;
     color: #444;
 }
@@ -226,16 +266,23 @@ body.public-view .admin-only {
     border-color: #e53935;
 }
 
-.form-actions {
-    grid-column: 1 / -1;
+.form-field input.id-input {
+    padding: 6px 4px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+
+/* przycisk w drugim rzędzie, po polu Ip */
+.user-add-form .form-actions {
+    grid-column: span 3;
     display: flex;
-    justify-content: flex-end;
-    padding-top: 6px;
 }
 
 .add-user-button {
-    min-width: 220px;
-    height: 44px;
+    width: 100%;
+    height: 42px;
     padding: 0 20px;
     border: none;
     background: #4caf50;
@@ -252,13 +299,16 @@ body.public-view .admin-only {
 /* --- formularz działu: pole + plusik --- */
 
 .section-add-form {
+    flex: 1;
+    min-width: 0;
     display: flex;
+    align-items: center;
     gap: 10px;
-    max-width: 500px;
 }
 
 .section-add-form input {
     flex: 1;
+    min-width: 0;
 }
 
 .plus-button {
@@ -667,21 +717,16 @@ body.dark-mode .filter-input:focus {
    RESPONSYWNOŚĆ
    ========================================================= */
 
-@media (max-width: 1100px) {
-    #admin-panel {
-        grid-template-columns: 1fr;
-    }
-    .section-add-form {
-        max-width: 500px;
-    }
-}
-
 @media (max-width: 1000px) {
     #data-tables-section {
         padding: 15px;
     }
     .user-add-form {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .user-add-form .form-field,
+    .user-add-form .form-actions {
+        grid-column: auto;
     }
     .table-group {
         padding: 12px;
@@ -717,18 +762,10 @@ body.dark-mode .filter-input:focus {
     #data-tables-section {
         padding: 8px;
     }
-    #admin-panel {
-        gap: 12px;
-        margin-bottom: 12px;
-    }
     .user-add,
     .section-add {
         padding: 12px;
         margin-bottom: 12px;
-    }
-    #admin-panel .section-add,
-    #admin-panel .user-add {
-        margin-bottom: 0;
     }
     .panel-title {
         font-size: 18px;
@@ -736,11 +773,16 @@ body.dark-mode .filter-input:focus {
     .user-add-form {
         grid-template-columns: 1fr;
     }
-    .form-actions {
-        justify-content: stretch;
+    .user-add-form .form-actions {
+        grid-column: 1 / -1;
     }
-    .add-user-button {
-        width: 100%;
+    .section-add {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+    .section-add-form {
+        flex: none;
     }
     .section-add-form {
         max-width: none;
