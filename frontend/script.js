@@ -1,5 +1,7 @@
+const API_URL = 'http://localhost:8000/api';
+
 document.addEventListener("DOMContentLoaded", () => {
-    // 1. Najpierw pobieramy dane z API i budujemy tabele
+    // 1. Pobieramy dane i sprawdzamy dostęp (uwzględniając ciasteczko HttpOnly)
     getData();
 
     // 2. Obsługa przełącznika trybu ciemnego
@@ -33,11 +35,25 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 });
 
-// Pobieranie danych z API i generowanie struktury
+// Pobieranie danych z API i generowanie tabel
 async function getData() {
-    const url = "http://localhost:8000/api/userdata";
+    const url = `${API_URL}/userdata`;
+
     try {
-        const response = await fetch(url);
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json'
+            },
+            credentials: 'include' // KLUCZOWE: przesyła ciasteczko HttpOnly do Laravela
+        });
+
+        // Jeśli brak dostępu lub sesja wygasła
+        if (response.status === 401) {
+            window.location.replace('admin-login.html');
+            return;
+        }
+
         if (!response.ok) {
             throw new Error(`Response status: ${response.status}`);
         }
@@ -128,11 +144,15 @@ async function getData() {
         // Wstrzykujemy tabele do DOM
         document.getElementById('dynamic-tables-container').innerHTML = allTablesHTML;
 
-        // 4. Inicjalizujemy wyszukiwarkę i filtry dopiero TERAZ, kiedy tabele już istnieją w HTML!
+        // Inicjalizujemy wyszukiwarkę i filtry
         initSearchAndFilters();
+
+        // **ODSŁANIAMY STRONĘ:** Autoryzacja przeszła pomyślnie, pokazujemy panel bez mignięcia
+        document.body.classList.remove('auth-checking');
 
     } catch (error) {
         console.error("Błąd podczas pobierania danych:", error.message);
+        window.location.replace('admin-login.html');
     }
 }
 
@@ -280,17 +300,19 @@ function initSearchAndFilters() {
         globalSearch.focus();
     }
 
-    // Nasłuchiwanie zdarzeń
-    globalSearch.addEventListener("input", filterAll);
+    if (globalSearch) {
+        globalSearch.addEventListener("input", filterAll);
+    }
     document.querySelectorAll(".filter-input").forEach(input => {
         input.addEventListener("input", filterAll);
     });
-    clearSearch.addEventListener("click", clearAll);
+    if (clearSearch) {
+        clearSearch.addEventListener("click", clearAll);
+    }
 
-    // Pierwsze uruchomienie filtrowania po załadowaniu danych
     filterAll();
 
-
+    // Usuwanie użytkownika
     document.addEventListener("click", async (event) => {
         if (event.target.classList.contains("delete-button")) {
             const button = event.target;
@@ -302,23 +324,52 @@ function initSearchAndFilters() {
             }
 
             try {
-                const response = await fetch(`http://localhost:8000/api/userdata/${userId}`, {
+                const response = await fetch(`${API_URL}/userdata/${userId}`, {
                     method: 'DELETE',
+                    headers: {
+                        'Accept': 'application/json'
+                    },
+                    credentials: 'include'
                 });
+
+                if (response.status === 401) {
+                    window.location.replace('admin-login.html');
+                    return;
+                }
 
                 if(!response.ok) {
                     throw new Error(`Błąd usuwania. Status: ${response.status}`);
                 }
-                    const row = button.closest("tr");
-                    if (row) {
-                        row.remove();
-                        filterAll();
-                    }
+
+                const row = button.closest("tr");
+                if (row) {
+                    row.remove();
+                    filterAll();
+                }
 
             } catch (error) {
-                console.error("Nie udało się usunąć użytkownika: ", error)
-                alert("Wystąpił błąd podczas usuwania użytkownika")
+                console.error("Nie udało się usunąć użytkownika: ", error);
+                alert("Wystąpił błąd podczas usuwania użytkownika");
             }
         }
-    })
+    });
 }
+
+// Globalna funkcja wylogowania
+async function logout() {
+    try {
+        await fetch(`${API_URL}/logout`, {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json'
+            },
+            credentials: 'include'
+        });
+    } catch (error) {
+        console.error('Błąd połączenia przy wylogowaniu:', error);
+    } finally {
+        window.location.replace('admin-login.html');
+    }
+}
+
+window.logout = logout;

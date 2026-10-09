@@ -3,14 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TeleBook</title>
+    <title>TeleBook - Panel Administratora</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        body.auth-checking {
+            opacity: 0;
+            visibility: hidden;
+        }
+    </style>
 </head>
-<body>
+<body class="auth-checking">
 
 <header class="admin-header">
     <h1>Panel Admina</h1>
-
+    <button type="button" onclick="logout()">Wyloguj</button>
     <div class="header-toggles">
         <div class="toggle-item">
             <span class="toggle-label">Tryb ciemny</span>
