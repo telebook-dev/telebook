@@ -10,7 +10,6 @@ class SectionController
     public function store(Request $request)
     {
         $section = Section::create([
-            'designation' => $request->designation,
             'department' => $request->department,
         ]);
         return $section;

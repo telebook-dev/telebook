@@ -8,7 +8,6 @@ class Section extends Model
 {
     protected $fillable =
         [
-            'designation',
             'department',
         ];
     public function users()

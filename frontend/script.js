@@ -59,15 +59,14 @@ async function getData() {
             let rowsHTML = "";
 
             users.forEach(data => {
-                let user_id = data.id || '';
-                let phone = data.phone_number || '';
+                let user_id = data?.id || '';
+                let phone = data?.phone_number || '';
                 let room = data.details?.room_number || '';
-                let designation = data.section?.designation || '';
-                let name = data.name || '';
-                let last_name = data.last_name || '';
-                let email = data.email || '';
+                let designation = data?.designation || '';
+                let name = data?.name || '';
+                let last_name = data?.last_name || '';
+                let email = data?.email || '';
                 let ip = data.details?.ip_number || '';
-
                 rowsHTML += `
                     <tr>
                         <td class="admin-only">${user_id}</td>
@@ -82,7 +81,7 @@ async function getData() {
                             <button class="edit-button">Edit</button>
                             <button class="delete-button" data-id=${user_id}>Delete</button>
                         </td>
-                    </tr>ń
+                    </tr>
                 `;
             });
 

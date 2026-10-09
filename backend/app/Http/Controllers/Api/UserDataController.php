@@ -16,10 +16,12 @@ class UserDataController extends Controller
     {
         $user = UserData::create([
             'section_id' => $request->section_id,
+            'phone_number' => $request->phone_number,
+            'designation' => $request->designation,
             'name' => $request->name,
             'last_name' => $request->last_name,
             'email' => $request->email,
-            'phone_number' => $request->phone_number,
+
         ]);
 
         $user->details()->create([

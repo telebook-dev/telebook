@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('section_id')
                 ->constrained('sections');
+            $table->string('designation');
             $table->string('name');
             $table->string('last_name');
             $table->string('email')->unique();
