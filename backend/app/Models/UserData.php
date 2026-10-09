@@ -11,6 +11,7 @@ class UserData extends Model
     protected $fillable =
         [
             'section_id',
+            'designation',
             'name',
             'last_name',
             'email',

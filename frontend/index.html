@@ -28,6 +28,72 @@
             </label>
         </div>
     </div>
+
+<section class="section-add">
+        <h2 class="panel-title">Dodaj dział</h2>
+        <form id="add-section-form" class="section-add-form">
+            <input type="text" id="add-section-name" placeholder="Nazwa działu" required autocomplete="off">
+            <button type="submit" class="plus-button" title="Dodaj dział" aria-label="Dodaj dział">+</button>
+        </form>
+</section>
+
+<section class="user-add admin-only">
+    <h2 class="panel-title">Dodaj użytkownika</h2>
+
+    <form id="add-user-form" class="user-add-form">
+        <div class="form-field">
+            <label for="add-id">Id</label>
+            <input type="text" id="add-id" placeholder="Nadawane automatycznie" disabled>
+        </div>
+
+        <div class="form-field">
+            <label for="add-phone">Nr telefonu</label>
+            <input type="tel" id="add-phone" placeholder="np. 123 456 789"
+                   inputmode="tel" pattern="[0-9+\- ]*" maxlength="20">
+        </div>
+
+        <div class="form-field">
+            <label for="add-room">Nr pokoju</label>
+            <input type="text" id="add-room" placeholder="Nr pokoju">
+        </div>
+
+        <div class="form-field">
+            <label for="add-section-id">Dział</label>
+            <select id="add-section-id" required>
+                <option value="" disabled selected>Wybierz dział...</option>
+            </select>
+        </div>
+
+        <div class="form-field">
+            <label for="add-designation">Oznaczenie użytkownika</label>
+            <input type="text" id="add-designation" placeholder="np. IT-01">
+        </div>
+
+        <div class="form-field">
+            <label for="add-name">Imię</label>
+            <input type="text" id="add-name" placeholder="Imię" required>
+        </div>
+
+        <div class="form-field">
+            <label for="add-last-name">Nazwisko</label>
+            <input type="text" id="add-last-name" placeholder="Nazwisko" required>
+        </div>
+
+        <div class="form-field">
+            <label for="add-email">Adres pocztowy elektroniczny</label>
+            <input type="email" id="add-email" placeholder="jan.kowalski@firma.pl" required>
+        </div>
+
+        <div class="form-field">
+            <label for="add-ip">Ip</label>
+            <input type="text" id="add-ip" placeholder="np. 192.168.0.10">
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="add-user-button">Dodaj użytkownika</button>
+        </div>
+    </form>
+</section>
 </header>
 
 <section id="data-tables-section">

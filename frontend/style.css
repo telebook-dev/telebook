@@ -19,61 +19,6 @@ body {
 }
 
 /* =========================
-   PANEL WYSZUKIWANIA
-   ========================= */
-
-#search-panel {
-    margin-bottom: 20px;
-    padding: 15px;
-    background: #ffffff;
-    border: 2px solid #d6d9de;
-}
-
-#search-wrapper {
-    display: flex;
-    gap: 10px;
-    align-items: stretch;
-}
-
-#global-search {
-    flex: 1;
-    min-width: 0;
-    height: 48px;
-    padding: 8px 12px;
-    font-size: 18px;
-    border: 2px solid #c9cdd3;
-    background: #ffffff;
-    color: #222;
-    outline: none;
-}
-
-#global-search:focus {
-    border-color: #4caf50;
-}
-
-#clear-search {
-    flex: 0 0 130px;
-    height: 48px;
-    padding: 0 15px;
-    border: none;
-    background: #4caf50;
-    color: white;
-    cursor: pointer;
-    font-size: 16px;
-    font-weight: bold;
-}
-
-#clear-search:hover {
-    background: #388e3c;
-}
-
-#search-info {
-    margin-top: 8px;
-    color: #666;
-    font-size: 15px;
-}
-
-/* =========================
    HEADER
    ========================= */
 
@@ -189,6 +134,220 @@ body.public-view .admin-only {
 }
 
 /* =========================
+   PANEL ADMINA (dział + użytkownik)
+   ========================= */
+
+#admin-panel {
+    display: grid;
+    grid-template-columns: 340px minmax(0, 1fr);
+    gap: 20px;
+    align-items: start;
+    margin-bottom: 20px;
+}
+
+.user-add,
+.section-add {
+    margin-bottom: 20px;
+    padding: 18px 20px;
+    background: #ffffff;
+    border: 2px solid #d6d9de;
+}
+
+#admin-panel .section-add,
+#admin-panel .user-add {
+    margin-bottom: 0;
+}
+
+.panel-title {
+    margin: 0 0 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #eef0f2;
+    font-size: 20px;
+    line-height: 1.3;
+    color: #2e7d32;
+}
+
+.panel-hint {
+    margin: 12px 0 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #666;
+}
+
+/* --- formularz użytkownika: 4 kolumny w kolejności jak w tabeli --- */
+
+.user-add-form {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px 16px;
+}
+
+.form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 0;
+}
+
+.form-field label {
+    font-size: 13px;
+    font-weight: bold;
+    color: #444;
+}
+
+.form-field input,
+.form-field select,
+.section-add-form input {
+    width: 100%;
+    height: 42px;
+    padding: 6px 10px;
+    border: 2px solid #c9cdd3;
+    background: #ffffff;
+    color: #222;
+    font-size: 16px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s ease;
+}
+
+.form-field input:focus,
+.form-field select:focus,
+.section-add-form input:focus {
+    border-color: #4caf50;
+}
+
+.form-field input:disabled {
+    background: #eef0f2;
+    color: #888;
+    cursor: not-allowed;
+}
+
+.form-field input:invalid:not(:placeholder-shown) {
+    border-color: #e53935;
+}
+
+.form-actions {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 6px;
+}
+
+.add-user-button {
+    min-width: 220px;
+    height: 44px;
+    padding: 0 20px;
+    border: none;
+    background: #4caf50;
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.add-user-button:hover {
+    background: #388e3c;
+}
+
+/* --- formularz działu: pole + plusik --- */
+
+.section-add-form {
+    display: flex;
+    gap: 10px;
+    max-width: 500px;
+}
+
+.section-add-form input {
+    flex: 1;
+}
+
+.plus-button {
+    flex: 0 0 42px;
+    width: 42px;
+    height: 42px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: #4caf50;
+    color: #ffffff;
+    font-size: 28px;
+    line-height: 1;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.plus-button:hover {
+    background: #388e3c;
+}
+
+.plus-button:active {
+    transform: scale(0.92);
+}
+
+.plus-button:focus-visible,
+.add-user-button:focus-visible,
+.delete-section-button:focus-visible {
+    outline: 3px solid rgba(76, 175, 80, 0.35);
+    outline-offset: 2px;
+}
+
+/* =========================
+   PANEL WYSZUKIWANIA
+   ========================= */
+
+#search-panel {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #ffffff;
+    border: 2px solid #d6d9de;
+}
+
+#search-wrapper {
+    display: flex;
+    gap: 10px;
+    align-items: stretch;
+}
+
+#global-search {
+    flex: 1;
+    min-width: 0;
+    height: 48px;
+    padding: 8px 12px;
+    font-size: 18px;
+    border: 2px solid #c9cdd3;
+    background: #ffffff;
+    color: #222;
+    outline: none;
+}
+
+#global-search:focus {
+    border-color: #4caf50;
+}
+
+#clear-search {
+    flex: 0 0 130px;
+    height: 48px;
+    padding: 0 15px;
+    border: none;
+    background: #4caf50;
+    color: white;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+#clear-search:hover {
+    background: #388e3c;
+}
+
+#search-info {
+    margin-top: 8px;
+    color: #666;
+    font-size: 15px;
+}
+
+/* =========================
    GRUPA TABELI
    ========================= */
 
@@ -210,6 +369,41 @@ body.public-view .admin-only {
     font-size: 22px;
     line-height: 1.3;
     color: #2e7d32;
+}
+
+/* --- nagłówek grupy + usuwanie pustego działu --- */
+
+.table-header {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 36px;
+    margin-bottom: 15px;
+}
+
+.table-header .table-name {
+    margin: 0;
+}
+
+.delete-section-button {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 36px;
+    padding: 0 14px;
+    border: none;
+    border-radius: 3px;
+    background: #e53935;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.delete-section-button:hover {
+    filter: brightness(1.15);
 }
 
 .table-container {
@@ -352,6 +546,48 @@ body.dark-mode .admin-slider {
     background: #4caf50;
 }
 
+/* --- panel admina --- */
+
+body.dark-mode .user-add,
+body.dark-mode .section-add {
+    background: #16161a;
+    border-color: #2e2e33;
+}
+
+body.dark-mode .panel-title {
+    color: #4caf50;
+    border-color: #2e2e33;
+}
+
+body.dark-mode .panel-hint {
+    color: #b5b5b5;
+}
+
+body.dark-mode .form-field label {
+    color: #c9c9c9;
+}
+
+body.dark-mode .form-field input,
+body.dark-mode .form-field select,
+body.dark-mode .section-add-form input {
+    background: #16161a;
+    color: #e6e6e6;
+    border-color: #2e2e33;
+}
+
+body.dark-mode .form-field input:focus,
+body.dark-mode .form-field select:focus,
+body.dark-mode .section-add-form input:focus {
+    border-color: #4caf50;
+}
+
+body.dark-mode .form-field input:disabled {
+    background: #1c1c20;
+    color: #777;
+}
+
+/* --- wyszukiwarka i tabele --- */
+
 body.dark-mode #search-panel {
     background: #1c1c20;
     border-color: #2e2e33;
@@ -431,9 +667,21 @@ body.dark-mode .filter-input:focus {
    RESPONSYWNOŚĆ
    ========================================================= */
 
+@media (max-width: 1100px) {
+    #admin-panel {
+        grid-template-columns: 1fr;
+    }
+    .section-add-form {
+        max-width: 500px;
+    }
+}
+
 @media (max-width: 1000px) {
     #data-tables-section {
         padding: 15px;
+    }
+    .user-add-form {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
     .table-group {
         padding: 12px;
@@ -469,6 +717,34 @@ body.dark-mode .filter-input:focus {
     #data-tables-section {
         padding: 8px;
     }
+    #admin-panel {
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+    .user-add,
+    .section-add {
+        padding: 12px;
+        margin-bottom: 12px;
+    }
+    #admin-panel .section-add,
+    #admin-panel .user-add {
+        margin-bottom: 0;
+    }
+    .panel-title {
+        font-size: 18px;
+    }
+    .user-add-form {
+        grid-template-columns: 1fr;
+    }
+    .form-actions {
+        justify-content: stretch;
+    }
+    .add-user-button {
+        width: 100%;
+    }
+    .section-add-form {
+        max-width: none;
+    }
     #search-panel {
         padding: 10px;
         margin-bottom: 12px;
@@ -494,6 +770,16 @@ body.dark-mode .filter-input:focus {
     .table-name {
         margin-bottom: 10px;
         font-size: 18px;
+    }
+    .table-header {
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 10px;
+    }
+    .delete-section-button {
+        position: static;
+        transform: none;
+        width: 100%;
     }
     .table-data {
         min-width: 900px;

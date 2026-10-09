@@ -1,6 +1,8 @@
+const API = "http://localhost:8000/api";
+
 document.addEventListener("DOMContentLoaded", () => {
-    // 1. Najpierw pobieramy dane z API i budujemy tabele
     getData();
+    loadSections();
 
     // 2. Obsługa przełącznika trybu ciemnego
     const themeToggle = document.getElementById("theme-toggle");
@@ -33,6 +35,132 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 });
 
+// 4. Obsługa formularza dodawania użytkownika
+    const addUserForm = document.getElementById("add-user-form");
+    if (addUserForm) {
+        addUserForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+
+            const newUser = {
+            section_id: parseInt(document.getElementById("add-section-id").value),
+            designation: document.getElementById("add-designation").value,
+            name: document.getElementById("add-name").value,
+            last_name: document.getElementById("add-last-name").value,
+            email: document.getElementById("add-email").value,
+            phone_number: document.getElementById("add-phone").value,
+            room_number: document.getElementById("add-room").value,
+            ip_number: document.getElementById("add-ip").value
+        };
+
+            try {
+                const response = await fetch("http://localhost:8000/api/userdata", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Accept": "application/json"
+                    },
+                    body: JSON.stringify(newUser)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    const details = errorData.errors
+                        ? Object.values(errorData.errors).flat().join("\n")
+                        : errorData.message;
+                    throw new Error(details || `Status: ${response.status}`);
+                }
+
+                addUserForm.reset();
+                await getData();
+                alert("Użytkownik został pomyślnie dodany!");
+            } catch (error) {
+                console.error("Błąd podczas dodawania użytkownika:", error);
+                alert(`Nie udało się dodać użytkownika: ${error.message}`);
+            }
+        });
+    }
+
+
+async function loadSections(selectId = null) {
+    try {
+        const response = await fetch(`${API}/sections`, {
+            headers: { "Accept": "application/json" }
+        });
+        if (!response.ok) throw new Error(`Status: ${response.status}`);
+
+        const json = await response.json();
+        const sections = Array.isArray(json) ? json : json.data;
+        populateSectionSelect(sections, selectId);
+    } catch (error) {
+        console.error("Błąd podczas pobierania działów:", error);
+    }
+}
+
+function populateSectionSelect(sections, selectId = null) {
+    const select = document.getElementById("add-section-id");
+    if (!select) return;
+
+    const previous = selectId ?? select.value;
+
+    select.innerHTML = '<option value="" disabled selected>Wybierz dział...</option>';
+
+    [...sections]
+        .sort((a, b) => a.department.localeCompare(b.department, "pl"))
+        .forEach(section => {
+            const option = document.createElement("option");
+            option.value = section.id;
+            option.textContent = section.department;
+            select.appendChild(option);
+        });
+
+    if (previous) select.value = previous;
+}
+
+// Telefon: tylko cyfry, spacje, + i -
+const phoneInput = document.getElementById("add-phone");
+if (phoneInput) {
+    phoneInput.addEventListener("input", () => {
+        phoneInput.value = phoneInput.value.replace(/[^\d+\- ]/g, "");
+    });
+}
+
+// Dodawanie nowego działu
+const addSectionForm = document.getElementById("add-section-form");
+if (addSectionForm) {
+    addSectionForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const nameInput = document.getElementById("add-section-name");
+        const department = nameInput.value.trim();
+        if (!department) return;
+
+        try {
+            const response = await fetch(`${API}/sections`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Accept": "application/json"
+                },
+                body: JSON.stringify({ department })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || `Status: ${response.status}`);
+            }
+
+            const created = await response.json();
+            const newId = created.id ?? created.data?.id;
+
+            nameInput.value = "";
+            await loadSections(newId); // odśwież listę i od razu zaznacz nowy dział
+        } catch (error) {
+            console.error("Błąd podczas dodawania działu:", error);
+            alert(`Nie udało się dodać działu: ${error.message}`);
+        }
+    });
+}
+
 // Pobieranie danych z API i generowanie struktury
 async function getData() {
     const url = "http://localhost:8000/api/userdata";
@@ -43,10 +171,25 @@ async function getData() {
         }
 
         const result = await response.json();
-        const departmentsMap = {};
 
+        // najpierw wszystkie działy (także puste)
+        const sectionsResp = await fetch(`${API}/sections`, { headers: { "Accept": "application/json" } });
+        if (!sectionsResp.ok) throw new Error(`Sections status: ${sectionsResp.status}`);
+        const allSections = await sectionsResp.json();
+
+        const departmentsMap = {};
+        const sectionIds = {};   // nazwa -> id
+
+        allSections
+            .sort((a, b) => a.department.localeCompare(b.department, "pl"))
+            .forEach(s => {
+                departmentsMap[s.department] = [];
+                sectionIds[s.department] = s.id;
+            });
+
+        // potem użytkownicy
         result.forEach(data => {
-            let department = data.section?.department || 'Brak działu';
+            const department = data.section?.department || 'Brak działu';
             if (!departmentsMap[department]) {
                 departmentsMap[department] = [];
             }
@@ -57,12 +200,14 @@ async function getData() {
 
         for (const [deptName, users] of Object.entries(departmentsMap)) {
             let rowsHTML = "";
+            const sectionId = sectionIds[deptName];
+            const canDelete = users.length === 0 && sectionId !== undefined;
 
             users.forEach(data => {
                 let user_id = data.id || '';
                 let phone = data.phone_number || '';
                 let room = data.details?.room_number || '';
-                let designation = data.section?.designation || '';
+                let designation = data.designation || '';
                 let name = data.name || '';
                 let last_name = data.last_name || '';
                 let email = data.email || '';
@@ -82,14 +227,21 @@ async function getData() {
                             <button class="edit-button">Edit</button>
                             <button class="delete-button" data-id=${user_id}>Delete</button>
                         </td>
-                    </tr>ń
+                    </tr>
                 `;
             });
 
-            allTablesHTML += `
+                allTablesHTML += `
                 <div class="table-group">
-                    <h2 class="table-name">${deptName}</h2>
-
+                    <div class="table-header">
+                        <h2 class="table-name">${deptName}</h2>
+                        ${canDelete ? `
+                            <button class="delete-section-button admin-only"
+                                    data-section-id="${sectionId}"
+                                    data-section-name="${deptName}">
+                                Usuń dział
+                            </button>` : ""}
+                    </div>
                     <div class="table-container">
                         <table class="table-data">
                             <thead>
@@ -293,33 +445,44 @@ function initSearchAndFilters() {
 
 
     document.addEventListener("click", async (event) => {
-        if (event.target.classList.contains("delete-button")) {
-            const button = event.target;
-            const userId = button.getAttribute("data-id");
+    // usuwanie użytkownika
+    if (event.target.classList.contains("delete-button")) {
+        const userId = event.target.getAttribute("data-id");
+        if (!userId) return;
+        if (!confirm(`Czy na pewno chcesz usunąć użytkownika o ID: ${userId}`)) return;
 
-            if(!userId) return;
-            if(!confirm(`Czy na pewno chcesz usunąć użytkownika o ID: ${userId}`)) {
-                return;
-            }
-
-            try {
-                const response = await fetch(`http://localhost:8000/api/userdata/${userId}`, {
-                    method: 'DELETE',
-                });
-
-                if(!response.ok) {
-                    throw new Error(`Błąd usuwania. Status: ${response.status}`);
-                }
-                    const row = button.closest("tr");
-                    if (row) {
-                        row.remove();
-                        filterAll();
-                    }
-
-            } catch (error) {
-                console.error("Nie udało się usunąć użytkownika: ", error)
-                alert("Wystąpił błąd podczas usuwania użytkownika")
-            }
+        try {
+            const response = await fetch(`${API}/userdata/${userId}`, { method: "DELETE" });
+            if (!response.ok) throw new Error(`Błąd usuwania. Status: ${response.status}`);
+            await getData();
+        } catch (error) {
+            console.error("Nie udało się usunąć użytkownika: ", error);
+            alert("Wystąpił błąd podczas usuwania użytkownika");
         }
-    })
+        return;
+    }
+
+    // usuwanie działu
+    if (event.target.classList.contains("delete-section-button")) {
+        const id = event.target.dataset.sectionId;
+        const name = event.target.dataset.sectionName;
+        if (!confirm(`Czy na pewno chcesz usunąć dział „${name}"?`)) return;
+
+        try {
+            const response = await fetch(`${API}/sections/${id}`, {
+                method: "DELETE",
+                headers: { "Accept": "application/json" }
+            });
+            if (!response.ok) {
+                const err = await response.json().catch(() => ({}));
+                throw new Error(err.message || `Status: ${response.status}`);
+            }
+            await getData();
+            await loadSections();
+        } catch (error) {
+            console.error("Błąd usuwania działu:", error);
+            alert(`Nie udało się usunąć działu: ${error.message}`);
+        }
+    }
+});
 }
