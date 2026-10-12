@@ -369,6 +369,15 @@ function rowHTML(user) {
         ? `<a href="mailto:${escapeHtml(encodeURI(email))}">${escapeHtml(email)}</a>`
         : "";
 
+    // Tutaj zamieniamy zwykły tekst IP na link do noVNC
+    // Zakładamy, że noVNC działa na porcie 6080 pod adresem hosta, na którym stoi Twój panel (window.location.hostname)
+    let ipCell = "";
+    if (ip) {
+        // window.location.hostname wykryje czy jesteś na localhost, czy na serwerze produkcyjnym
+        const novncUrl = `http://${window.location.hostname}:6080/vnc.html?path=${encodeURIComponent("websockify?token=" + ip)}&autoconnect=1&resize=scale`;
+        ipCell = `<a href="${novncUrl}" target="_blank" title="Otwórz pulpit VNC">${escapeHtml(ip)}</a>`;
+    }
+
     return `
         <tr>
             <td>${escapeHtml(id)}</td>
@@ -378,7 +387,7 @@ function rowHTML(user) {
             <td>${escapeHtml(name)}</td>
             <td>${escapeHtml(lastName)}</td>
             <td>${emailCell}</td>
-            <td>${escapeHtml(ip)}</td>
+            <td>${ipCell}</td>
             <td class="actions">
                 <button type="button" class="edit-button" disabled title="Edycja będzie dostępna wkrótce">Edit</button>
                 <button type="button" class="delete-button"
