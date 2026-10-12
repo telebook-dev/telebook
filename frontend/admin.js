@@ -6,31 +6,35 @@ const API_URL = 'http://localhost:8000/api';
 
 async function checkAdminAccess() {
     const isLoginPage = window.location.pathname.includes('admin-login.html') || document.querySelector('.login-form');
-
-    // Jeśli jesteśmy na stronie logowania, nie sprawdzamy dostępu
-    if (isLoginPage) {
-        return;
-    }
+    if (isLoginPage) return;
 
     try {
-        // Pytamy backend, czy ciasteczko HttpOnly jest ważne
         const response = await fetch(`${API_URL}/admin-data`, {
             method: 'GET',
-            headers: {
-                'Accept': 'application/json'
-            },
-            credentials: 'include' // KLUCZOWE: wysyła ciasteczko HttpOnly do weryfikacji
+            headers: { 'Accept': 'application/json' },
+            credentials: 'include'
         });
 
-        // Jeśli serwer odrzuci ciasteczko (brak uprawnień / wygasła sesja)
         if (!response.ok) {
             window.location.replace('admin-login.html');
+            return;
         }
+
+        // dostęp potwierdzony – pokaż stronę
+        document.documentElement.classList.remove('auth-pending');
     } catch (error) {
         console.error('Błąd sprawdzania dostępu:', error);
         window.location.replace('admin-login.html');
     }
 }
+
+// uruchom od razu przy ładowaniu (skrypt jest na końcu <body>)
+checkAdminAccess();
+
+// po powrocie przyciskiem „wstecz” (cache strony) sprawdź ponownie
+window.addEventListener('pageshow', (e) => {
+    if (e.persisted) checkAdminAccess();
+});
 
 // ========================================
 // LOGOWANIE (na stronie admin-login.html)

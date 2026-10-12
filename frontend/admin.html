@@ -17,6 +17,8 @@
             } catch (e) {}
         })();
     </script>
+    <script>document.documentElement.classList.add('auth-pending');</script>
+    <style>html.auth-pending body { visibility: hidden; }</style>
 
     <link rel="stylesheet" href="style.css">
 </head>
@@ -27,6 +29,7 @@
      ========================= -->
 <header class="admin-header">
     <h1>Panel Admina</h1>
+    <button type="button" onclick="logout()">Wyloguj</button>
 
     <div class="header-toggles">
         <div class="toggle-item">
@@ -182,6 +185,7 @@
      ========================= -->
 <div id="toast-container" class="toast-container" aria-live="polite"></div>
 
+<script src="admin.js"></script>
 <script src="script.js"></script>
 
 </body>

@@ -118,12 +118,18 @@ async function readError(response) {
 async function api(path, options = {}) {
     const response = await fetch(`${API}${path}`, {
         ...options,
+        credentials: "include",
         headers: {
             Accept: "application/json",
             ...(options.body ? { "Content-Type": "application/json" } : {}),
             ...options.headers,
         },
     });
+
+    if (response.status === 401) {
+        window.location.replace("admin-login.html");
+        throw new Error("Sesja wygasła");
+    }
 
     if (!response.ok) {
         throw new Error(await readError(response));
