@@ -2,12 +2,40 @@
 
 use App\Http\Controllers\Api\SectionController;
 use App\Http\Controllers\Api\UserDataController;
+use App\Http\Controllers\AuthController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/userdata', [UserDataController::class, 'index']);
-Route::post('/userdata', [UserDataController::class, 'store']);
-Route::delete('/userdata/{id}', [UserDataController::class, 'destroy']);
-Route::delete('/sections/{id}', [SectionController::class, 'destroy']);
+// ==========================================
+// 1. TRASY PUBLICZNE
+// ==========================================
 
-Route::get('/sections', [SectionController::class, 'index']);
-Route::post('/sections', [SectionController::class, 'store']);
+// Logowanie administratora
+Route::post('/login', [AuthController::class, 'login']);
+
+// ==========================================
+// 2. TRASY CHRONIONE — ADMIN
+// ==========================================
+
+Route::middleware('auth.admin')->group(function () {
+
+    // Zarządzanie użytkownikami
+    Route::get('/userdata', [UserDataController::class, 'index']);
+    Route::post('/userdata', [UserDataController::class, 'store']);
+    Route::delete('/userdata/{id}', [UserDataController::class, 'destroy']);
+
+    // Zarządzanie sekcjami
+    Route::get('/sections', [SectionController::class, 'index']);
+    Route::post('/sections', [SectionController::class, 'store']);
+    Route::delete('/sections/{id}', [SectionController::class, 'destroy']);
+
+    // Sprawdzanie sesji administratora
+    Route::get('/admin-data', function () {
+        return response()->json([
+            'success' => true,
+            'message' => 'Dostęp przyznany',
+        ]);
+    });
+
+    // Wylogowanie administratora
+    Route::post('/logout', [AuthController::class, 'logout']);
+});
