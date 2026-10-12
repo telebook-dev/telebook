@@ -3,53 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TeleBook - Panel Administratora</title>
+    <title>TeleBook</title>
+
+    <!-- Motyw ustawiany PRZED pierwszym renderem, żeby nie było błysku jasnego tła -->
+    <script>
+        (function () {
+            try {
+                var saved = localStorage.getItem('telebook-theme');
+                var dark = saved
+                    ? saved === 'dark'
+                    : window.matchMedia('(prefers-color-scheme: dark)').matches;
+                if (dark) document.documentElement.classList.add('dark-mode');
+            } catch (e) {}
+        })();
+    </script>
+
     <link rel="stylesheet" href="style.css">
-    <style>
-        body.auth-checking {
-            opacity: 0;
-            visibility: hidden;
-        }
-    </style>
 </head>
-<body class="auth-checking">
+<body>
 
 <!-- =========================
      HEADER
      ========================= -->
 <header class="admin-header">
     <h1>Panel Admina</h1>
-    <button type="button" onclick="logout()">Wyloguj</button>
+
     <div class="header-toggles">
-        <div class="toggle-item admin-only">
+        <div class="toggle-item">
             <span class="toggle-label">Dodaj dział</span>
             <label class="switch">
-                <input type="checkbox" id="section-add-toggle" data-panel-toggle="section-add-panel" checked>
-                <span class="slider panel-slider"></span>
+                <input type="checkbox" id="section-add-toggle" data-panel-toggle="section-add-panel" checked
+                       aria-label="Pokaż panel dodawania działu">
+                <span class="slider"></span>
             </label>
         </div>
 
-        <div class="toggle-item admin-only">
+        <div class="toggle-item">
             <span class="toggle-label">Dodaj użytkownika</span>
             <label class="switch">
-                <input type="checkbox" id="user-add-toggle" data-panel-toggle="user-add-panel" checked>
-                <span class="slider panel-slider"></span>
+                <input type="checkbox" id="user-add-toggle" data-panel-toggle="user-add-panel" checked
+                       aria-label="Pokaż panel dodawania użytkownika">
+                <span class="slider"></span>
             </label>
         </div>
 
         <div class="toggle-item">
             <span class="toggle-label">Tryb ciemny</span>
             <label class="switch">
-                <input type="checkbox" id="theme-toggle">
-                <span class="slider theme-slider"></span>
-            </label>
-        </div>
-
-        <div class="toggle-item">
-            <span class="toggle-label">Widok admina</span>
-            <label class="switch">
-                <input type="checkbox" id="admin-toggle" checked>
-                <span class="slider admin-slider"></span>
+                <input type="checkbox" id="theme-toggle" aria-label="Tryb ciemny">
+                <span class="slider"></span>
             </label>
         </div>
     </div>
@@ -60,14 +62,15 @@
     <!-- =========================
          PANEL ADMINA
          ========================= -->
-    <div id="admin-panel" class="admin-only">
+    <div id="admin-panel">
 
         <!-- Dodaj dział (pasek na całą szerokość) -->
         <section class="section-add" id="section-add-panel">
             <h2 class="panel-title">Dodaj dział</h2>
 
             <form id="add-section-form" class="section-add-form">
-                <input type="text" id="add-section-name" placeholder="Nazwa działu" required autocomplete="off">
+                <input type="text" id="add-section-name" placeholder="Nazwa działu" required autocomplete="off"
+                       aria-label="Nazwa działu">
                 <button type="submit" class="plus-button" title="Dodaj dział" aria-label="Dodaj dział">+</button>
             </form>
         </section>
@@ -86,7 +89,7 @@
                 <div class="form-field f-phone">
                     <label for="add-phone">Nr telefonu</label>
                     <input type="tel" id="add-phone" placeholder="np. 123 456 789"
-                           inputmode="tel" pattern="[0-9+\- ]*" maxlength="20">
+                           inputmode="tel" pattern="[0-9+ \-]*" maxlength="20">
                 </div>
 
                 <div class="form-field f-room">
@@ -123,7 +126,10 @@
 
                 <div class="form-field f-ip">
                     <label for="add-ip">Ip</label>
-                    <input type="text" id="add-ip" placeholder="np. 192.168.0.10">
+                    <input type="text" id="add-ip" placeholder="np. 192.168.0.10"
+                           inputmode="decimal" maxlength="15"
+                           pattern="((25[0-5]|2[0-4][0-9]|1?[0-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1?[0-9]?[0-9])"
+                           title="Poprawny adres IPv4, np. 192.168.0.10">
                 </div>
 
                 <div class="form-actions">
@@ -140,52 +146,41 @@
          ========================= -->
     <div id="search-panel">
         <div id="search-wrapper">
-            <input type="search" id="global-search" placeholder="Szukaj użytkownika we wszystkich działach..." autocomplete="off">
+            <input type="search" id="global-search" placeholder="Szukaj użytkownika we wszystkich działach..."
+                   autocomplete="off" aria-label="Szukaj użytkownika we wszystkich działach">
             <button type="button" id="clear-search">Wyczyść</button>
         </div>
 
-        <div id="search-info">Wszyscy użytkownicy</div>
+        <div id="search-info" aria-live="polite">Ładowanie danych…</div>
     </div>
 
     <!-- =========================
          TABELE (generowane w script.js)
          ========================= -->
-    <div id="dynamic-tables-container"></div>
+    <div id="dynamic-tables-container">
+        <div class="state-message">Ładowanie danych…</div>
+    </div>
 
 </section>
 
-<!-- Ukrywanie paneli "Dodaj dział" / "Dodaj użytkownika" (stan zapamiętywany w przeglądarce) -->
-<script>
+<!-- =========================
+     OKNO POTWIERDZENIA
+     ========================= -->
+<dialog id="confirm-dialog" class="confirm-dialog" aria-labelledby="confirm-title" aria-describedby="confirm-message">
+    <form method="dialog">
+        <h2 id="confirm-title" class="confirm-title"></h2>
+        <p id="confirm-message" class="confirm-message"></p>
+        <div class="confirm-actions">
+            <button type="submit" value="cancel" class="button button-secondary" autofocus>Anuluj</button>
+            <button type="submit" value="confirm" id="confirm-ok" class="button button-danger">Usuń</button>
+        </div>
+    </form>
+</dialog>
 
-    // AI bullshit
-(function () {
-    var STORAGE_KEY = 'telebook-panels-visible';
-    var state = {};
-
-    try {
-        state = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
-    } catch (e) {}
-
-    document.querySelectorAll('[data-panel-toggle]').forEach(function (input) {
-        var panel = document.getElementById(input.dataset.panelToggle);
-        if (!panel) return;
-
-        if (state[panel.id] === false) {
-            input.checked = false;
-        }
-        panel.hidden = !input.checked;
-
-        input.addEventListener('change', function () {
-            panel.hidden = !input.checked;
-            state[panel.id] = input.checked;
-
-            try {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-            } catch (e) {}
-        });
-    });
-})();
-</script>
+<!-- =========================
+     POWIADOMIENIA
+     ========================= -->
+<div id="toast-container" class="toast-container" aria-live="polite"></div>
 
 <script src="script.js"></script>
 

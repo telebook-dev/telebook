@@ -1,13 +1,134 @@
+/* =========================================================
+   ZMIENNE KOLORÓW (jasny + ciemny motyw)
+   Ciemny motyw to tylko nadpisanie zmiennych na <html class="dark-mode">
+   ========================================================= */
+
+:root {
+    color-scheme: light;
+
+    --bg: #f4f5f7;
+    --surface: #ffffff;
+    --surface-raised: #ffffff;
+    --surface-head: #eef0f2;
+    --surface-filter: #f5f6f7;
+
+    --border: #d6d9de;
+    --border-input: #c9cdd3;
+    --border-soft: #eef0f2;
+
+    --text: #222222;
+    --text-muted: #666666;
+    --text-label: #444444;
+    --text-disabled: #888888;
+    --bg-disabled: #eef0f2;
+
+    --accent: #4caf50;
+    --accent-hover: #388e3c;
+    --accent-text: #2e7d32;
+    --accent-ring: rgba(76, 175, 80, 0.35);
+
+    --danger: #e53935;
+    --danger-bg: #fff1f1;
+
+    --row-hover: #f1f3f5;
+    --row-match: #e8f5e9;
+
+    --switch-off: #c9cdd3;
+    --knob: #ffffff;
+
+    --overlay: rgba(0, 0, 0, 0.45);
+    --shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    --shadow-soft: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+:root.dark-mode {
+    color-scheme: dark;
+
+    --bg: #0f0f11;
+    --surface: #16161a;
+    --surface-raised: #1c1c20;
+    --surface-head: #1c1c20;
+    --surface-filter: #18181c;
+
+    --border: #2e2e33;
+    --border-input: #2e2e33;
+    --border-soft: #2e2e33;
+
+    --text: #e6e6e6;
+    --text-muted: #b5b5b5;
+    --text-label: #c9c9c9;
+    --text-disabled: #777777;
+    --bg-disabled: #1c1c20;
+
+    --accent-text: #4caf50;
+
+    --danger-bg: #3a0f0f;
+
+    --row-hover: #222229;
+    --row-match: #242c25;
+
+    --switch-off: #4a4a52;
+
+    --overlay: rgba(0, 0, 0, 0.65);
+    --shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+    --shadow-soft: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+/* =========================================================
+   PŁYNNE PRZEJŚCIE JASNY <-> CIEMNY
+   Klasa .theme-switching jest dodawana przez JS tylko na ~0,6 s
+   w momencie przełączenia, więc nie psuje zwykłych efektów hover/focus.
+   ========================================================= */
+
+.theme-switching,
+.theme-switching *,
+.theme-switching *::before,
+.theme-switching *::after {
+    transition:
+        background-color 0.45s ease,
+        color 0.45s ease,
+        border-color 0.45s ease,
+        transform 0.25s ease !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        transition: none !important;
+        animation: none !important;
+    }
+}
+
+/* =========================================================
+   BAZA
+   ========================================================= */
+
 * {
     box-sizing: border-box;
+}
+
+[hidden] {
+    display: none !important;
 }
 
 body {
     margin: 0;
     padding: 0;
-    background: #f4f5f7;
+    background: var(--bg);
     font-family: Arial, sans-serif;
-    color: #222;
+    color: var(--text);
+}
+
+button:focus-visible,
+a:focus-visible {
+    outline: 3px solid var(--accent-ring);
+    outline-offset: 2px;
+}
+
+button:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
 }
 
 #data-tables-section {
@@ -15,7 +136,7 @@ body {
     max-width: 1800px;
     margin: 0 auto;
     padding: 20px;
-    background: #f4f5f7;
+    background: var(--bg);
 }
 
 /* =========================
@@ -30,21 +151,21 @@ body {
     align-items: center;
     justify-content: space-between;
     gap: 25px;
-    background: #ffffff;
-    border-bottom: 2px solid #d6d9de;
-    color: #222;
+    background: var(--surface-raised);
+    border-bottom: 2px solid var(--border);
+    color: var(--text);
 }
 
 .admin-header h1 {
     margin: 0;
     font-size: 26px;
     line-height: 1.2;
-    color: #222;
+    color: var(--text);
     white-space: nowrap;
 }
 
 /* =========================
-   TOGGLE
+   PRZEŁĄCZNIKI
    ========================= */
 
 .header-toggles {
@@ -63,6 +184,7 @@ body {
     font-size: 15px;
     font-weight: bold;
     white-space: nowrap;
+    color: var(--text);
 }
 
 .switch {
@@ -83,9 +205,9 @@ body {
     position: absolute;
     inset: 0;
     cursor: pointer;
-    background: #c9cdd3;
+    background: var(--switch-off);
     border-radius: 999px;
-    transition: background 0.25s ease, box-shadow 0.25s ease;
+    transition: background 0.25s ease;
 }
 
 .slider::before {
@@ -95,90 +217,44 @@ body {
     height: 22px;
     left: 3px;
     top: 3px;
-    background: #ffffff;
+    background: var(--knob);
     border-radius: 50%;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
     transition: transform 0.25s ease;
+}
+
+.switch input:checked + .slider {
+    background: var(--accent);
 }
 
 .switch input:checked + .slider::before {
     transform: translateX(24px);
 }
 
-.theme-slider {
-    background: #bfc3c9;
-}
-
-.switch input:checked + .theme-slider {
-    background: #333333;
-}
-
-.admin-slider {
-    background: #c9cdd3;
-}
-
-.switch input:checked + .admin-slider {
-    background: #4caf50;
-}
-
-.panel-slider {
-    background: #c9cdd3;
-}
-
-.switch input:checked + .panel-slider {
-    background: #4caf50;
-}
-
 .switch input:focus-visible + .slider {
-    outline: 3px solid rgba(76, 175, 80, 0.35);
+    outline: 3px solid var(--accent-ring);
     outline-offset: 2px;
-}
-
-/* =========================
-   ELEMENTY ADMINA
-   ========================= */
-
-body.public-view .admin-only {
-    display: none !important;
 }
 
 /* =========================
    PANEL ADMINA (dział + użytkownik)
    ========================= */
 
-#admin-panel {
-    display: block;
-}
-
 .user-add,
 .section-add {
     margin-bottom: 20px;
     padding: 18px 20px;
-    background: #ffffff;
-    border: 2px solid #d6d9de;
+    background: var(--surface);
+    border: 2px solid var(--border);
 }
 
 .panel-title {
     margin: 0 0 15px;
     padding-bottom: 10px;
-    border-bottom: 2px solid #eef0f2;
+    border-bottom: 2px solid var(--border-soft);
     font-size: 20px;
     line-height: 1.3;
-    color: #2e7d32;
-}
-
-.panel-hint {
-    margin: 12px 0 0;
-    font-size: 13px;
-    line-height: 1.5;
-    color: #666;
-}
-
-/* --- ukrywanie całych paneli (przełączniki w headerze) --- */
-
-.section-add[hidden],
-.user-add[hidden] {
-    display: none !important;
+    color: var(--accent-text);
 }
 
 /* --- "Dodaj dział": pasek na całą szerokość --- */
@@ -198,7 +274,7 @@ body.public-view .admin-only {
     white-space: nowrap;
 }
 
-/* --- formularz użytkownika: 4 kolumny w kolejności jak w tabeli --- */
+/* --- formularz użytkownika: siatka 12 kolumn --- */
 
 .user-add-form {
     display: grid;
@@ -207,14 +283,14 @@ body.public-view .admin-only {
     align-items: end;
 }
 
-/* rząd 1: Id (wąskie) · telefon · pokój · dział · oznaczenie */
+/* rząd 1 */
 .user-add-form .f-id          { grid-column: span 1; }
 .user-add-form .f-phone       { grid-column: span 3; }
 .user-add-form .f-room        { grid-column: span 2; }
 .user-add-form .f-section     { grid-column: span 3; }
 .user-add-form .f-designation { grid-column: span 3; }
 
-/* rząd 2: imię · nazwisko · e-mail · ip · przycisk */
+/* rząd 2 */
 .user-add-form .f-name        { grid-column: span 2; }
 .user-add-form .f-last-name   { grid-column: span 2; }
 .user-add-form .f-email       { grid-column: span 3; }
@@ -232,7 +308,7 @@ body.public-view .admin-only {
     font-size: 13px;
     line-height: 1.2;
     font-weight: bold;
-    color: #444;
+    color: var(--text-label);
 }
 
 .form-field input,
@@ -241,9 +317,9 @@ body.public-view .admin-only {
     width: 100%;
     height: 42px;
     padding: 6px 10px;
-    border: 2px solid #c9cdd3;
-    background: #ffffff;
-    color: #222;
+    border: 2px solid var(--border-input);
+    background: var(--surface);
+    color: var(--text);
     font-size: 16px;
     font-family: inherit;
     outline: none;
@@ -253,17 +329,17 @@ body.public-view .admin-only {
 .form-field input:focus,
 .form-field select:focus,
 .section-add-form input:focus {
-    border-color: #4caf50;
+    border-color: var(--accent);
 }
 
 .form-field input:disabled {
-    background: #eef0f2;
-    color: #888;
+    background: var(--bg-disabled);
+    color: var(--text-disabled);
     cursor: not-allowed;
 }
 
 .form-field input:invalid:not(:placeholder-shown) {
-    border-color: #e53935;
+    border-color: var(--danger);
 }
 
 .form-field input.id-input {
@@ -274,26 +350,60 @@ body.public-view .admin-only {
     letter-spacing: 1px;
 }
 
-/* przycisk w drugim rzędzie, po polu Ip */
 .user-add-form .form-actions {
     grid-column: span 3;
     display: flex;
 }
 
-.add-user-button {
-    width: 100%;
+/* --- przyciski --- */
+
+.add-user-button,
+.button {
     height: 42px;
     padding: 0 20px;
-    border: none;
-    background: #4caf50;
-    color: #ffffff;
+    border: 2px solid transparent;
+    font-family: inherit;
     font-size: 16px;
     font-weight: bold;
     cursor: pointer;
 }
 
-.add-user-button:hover {
-    background: #388e3c;
+.add-user-button {
+    width: 100%;
+    background: var(--accent);
+    color: #ffffff;
+}
+
+.add-user-button:hover:not(:disabled) {
+    background: var(--accent-hover);
+}
+
+.button-primary {
+    background: var(--accent);
+    color: #ffffff;
+}
+
+.button-primary:hover {
+    background: var(--accent-hover);
+}
+
+.button-danger {
+    background: var(--danger);
+    color: #ffffff;
+}
+
+.button-danger:hover {
+    filter: brightness(1.15);
+}
+
+.button-secondary {
+    background: transparent;
+    border-color: var(--border-input);
+    color: var(--text);
+}
+
+.button-secondary:hover {
+    border-color: var(--accent);
 }
 
 /* --- formularz działu: pole + plusik --- */
@@ -318,7 +428,7 @@ body.public-view .admin-only {
     padding: 0;
     border: none;
     border-radius: 50%;
-    background: #4caf50;
+    background: var(--accent);
     color: #ffffff;
     font-size: 28px;
     line-height: 1;
@@ -327,30 +437,27 @@ body.public-view .admin-only {
     transition: background 0.2s ease, transform 0.1s ease;
 }
 
-.plus-button:hover {
-    background: #388e3c;
+.plus-button:hover:not(:disabled) {
+    background: var(--accent-hover);
 }
 
-.plus-button:active {
+.plus-button:active:not(:disabled) {
     transform: scale(0.92);
 }
 
-.plus-button:focus-visible,
-.add-user-button:focus-visible,
-.delete-section-button:focus-visible {
-    outline: 3px solid rgba(76, 175, 80, 0.35);
-    outline-offset: 2px;
-}
-
 /* =========================
-   PANEL WYSZUKIWANIA
+   PANEL WYSZUKIWANIA (przyklejony)
    ========================= */
 
 #search-panel {
+    position: sticky;
+    top: 10px;
+    z-index: 20;
     margin-bottom: 20px;
     padding: 15px;
-    background: #ffffff;
-    border: 2px solid #d6d9de;
+    background: var(--surface-raised);
+    border: 2px solid var(--border);
+    box-shadow: var(--shadow-soft);
 }
 
 #search-wrapper {
@@ -365,14 +472,16 @@ body.public-view .admin-only {
     height: 48px;
     padding: 8px 12px;
     font-size: 18px;
-    border: 2px solid #c9cdd3;
-    background: #ffffff;
-    color: #222;
+    font-family: inherit;
+    border: 2px solid var(--border-input);
+    background: var(--surface);
+    color: var(--text);
     outline: none;
+    transition: border-color 0.2s ease;
 }
 
 #global-search:focus {
-    border-color: #4caf50;
+    border-color: var(--accent);
 }
 
 #clear-search {
@@ -380,21 +489,39 @@ body.public-view .admin-only {
     height: 48px;
     padding: 0 15px;
     border: none;
-    background: #4caf50;
-    color: white;
+    background: var(--accent);
+    color: #ffffff;
     cursor: pointer;
     font-size: 16px;
     font-weight: bold;
 }
 
 #clear-search:hover {
-    background: #388e3c;
+    background: var(--accent-hover);
 }
 
 #search-info {
     margin-top: 8px;
-    color: #666;
+    color: var(--text-muted);
     font-size: 15px;
+}
+
+/* =========================
+   KOMUNIKATY (ładowanie / błąd / pusto)
+   ========================= */
+
+.state-message {
+    padding: 40px 20px;
+    background: var(--surface);
+    border: 2px solid var(--border);
+    color: var(--text-muted);
+    text-align: center;
+    font-size: 17px;
+    line-height: 1.5;
+}
+
+.state-message .button {
+    margin-top: 14px;
 }
 
 /* =========================
@@ -404,24 +531,15 @@ body.public-view .admin-only {
 .table-group {
     margin-bottom: 20px;
     padding: 15px;
-    background: #ffffff;
-    border: 2px solid #d6d9de;
+    background: var(--surface);
+    border: 2px solid var(--border);
+    transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
 .table-group.no-results {
-    background: #fff1f1;
-    border-color: #e53935;
+    background: var(--danger-bg);
+    border-color: var(--danger);
 }
-
-.table-name {
-    margin: 0 0 15px;
-    text-align: center;
-    font-size: 22px;
-    line-height: 1.3;
-    color: #2e7d32;
-}
-
-/* --- nagłówek grupy + usuwanie pustego działu --- */
 
 .table-header {
     position: relative;
@@ -432,9 +550,72 @@ body.public-view .admin-only {
     margin-bottom: 15px;
 }
 
-.table-header .table-name {
-    margin: 0;
+.table-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
 }
+
+.table-name {
+    margin: 0;
+    text-align: center;
+    font-size: 22px;
+    line-height: 1.3;
+    color: var(--accent-text);
+}
+
+.table-count {
+    min-width: 28px;
+    padding: 2px 9px;
+    border: 2px solid var(--border);
+    border-radius: 999px;
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: bold;
+    text-align: center;
+}
+
+/* --- zwijanie działu --- */
+
+.collapse-button {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: 2px solid var(--border-input);
+    background: transparent;
+    color: var(--text);
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.collapse-button::before {
+    content: "\25BE";
+    display: inline-block;
+    transition: transform 0.2s ease;
+}
+
+.collapse-button:hover {
+    border-color: var(--accent);
+}
+
+.table-group.collapsed:not(.force-open) .collapse-button::before {
+    transform: rotate(-90deg);
+}
+
+.table-group.collapsed:not(.force-open) .table-container {
+    display: none;
+}
+
+.table-group.collapsed:not(.force-open) .table-header {
+    margin-bottom: 0;
+}
+
+/* --- usuwanie pustego działu --- */
 
 .delete-section-button {
     position: absolute;
@@ -445,14 +626,14 @@ body.public-view .admin-only {
     padding: 0 14px;
     border: none;
     border-radius: 3px;
-    background: #e53935;
+    background: var(--danger);
     color: #ffffff;
     font-size: 14px;
     font-weight: bold;
     cursor: pointer;
 }
 
-.delete-section-button:hover {
+.delete-section-button:hover:not(:disabled) {
     filter: brightness(1.15);
 }
 
@@ -466,22 +647,22 @@ body.public-view .admin-only {
     width: 100%;
     min-width: 950px;
     border-collapse: collapse;
-    background: #ffffff;
-    color: #222;
+    background: var(--surface);
+    color: var(--text);
 }
 
 .table-data,
 .table-data th,
 .table-data td {
-    border: 2px solid #d6d9de;
+    border: 2px solid var(--border);
 }
 
 .table-data thead > tr:first-child th {
     padding: 10px 12px;
     font-size: 15px;
     line-height: 1.2;
-    background: #eef0f2;
-    color: #222;
+    background: var(--surface-head);
+    color: var(--text);
     white-space: nowrap;
 }
 
@@ -495,11 +676,27 @@ body.public-view .admin-only {
 }
 
 .table-data tbody tr:hover {
-    background: #f1f3f5;
+    background: var(--row-hover);
 }
 
 .table-data tbody tr.search-match {
-    background: #e8f5e9;
+    background: var(--row-match);
+}
+
+.table-data .empty-row td {
+    color: var(--text-muted);
+    font-size: 16px;
+}
+
+.table-data a {
+    color: inherit;
+    text-decoration: none;
+    border-bottom: 1px dotted var(--text-muted);
+}
+
+.table-data a:hover {
+    color: var(--accent-text);
+    border-bottom-color: currentColor;
 }
 
 /* =========================
@@ -508,22 +705,23 @@ body.public-view .admin-only {
 
 .filter-row th {
     padding: 4px;
-    background: #f5f6f7;
+    background: var(--surface-filter);
 }
 
 .filter-input {
     width: 100%;
     height: 34px;
     padding: 5px 8px;
-    border: 2px solid #c9cdd3;
-    background: #ffffff;
-    color: #222;
+    border: 2px solid var(--border-input);
+    background: var(--surface);
+    color: var(--text);
     font-size: 14px;
     outline: none;
+    transition: border-color 0.2s ease;
 }
 
 .filter-input:focus {
-    border-color: #4caf50;
+    border-color: var(--accent);
 }
 
 /* =========================
@@ -545,11 +743,11 @@ body.public-view .admin-only {
     cursor: pointer;
     font-size: 14px;
     font-weight: bold;
-    color: white;
+    color: #ffffff;
     border-radius: 3px;
 }
 
-.actions button:hover {
+.actions button:hover:not(:disabled) {
     filter: brightness(1.15);
 }
 
@@ -558,159 +756,94 @@ body.public-view .admin-only {
 }
 
 .delete-button {
-    background: #e53935;
+    background: var(--danger);
 }
 
-/* =========================================================
-   MOTYW CIEMNY
-   ========================================================= */
+/* =========================
+   OKNO POTWIERDZENIA
+   ========================= */
 
-body.dark-mode {
-    background: #0f0f11;
-    color: #e6e6e6;
+.confirm-dialog {
+    width: min(440px, calc(100vw - 32px));
+    padding: 0;
+    border: 2px solid var(--border);
+    background: var(--surface-raised);
+    color: var(--text);
+    box-shadow: var(--shadow);
 }
 
-body.dark-mode #data-tables-section {
-    background: #0f0f11;
+.confirm-dialog::backdrop {
+    background: var(--overlay);
 }
 
-body.dark-mode .admin-header {
-    background: #1c1c20;
-    border-color: #2e2e33;
-    color: #e6e6e6;
+.confirm-dialog form {
+    padding: 22px 24px;
 }
 
-body.dark-mode .admin-header h1 {
-    color: #e6e6e6;
+.confirm-title {
+    margin: 0 0 8px;
+    font-size: 20px;
+    line-height: 1.3;
 }
 
-body.dark-mode .toggle-label {
-    color: #e6e6e6;
+.confirm-message {
+    margin: 0 0 22px;
+    color: var(--text-muted);
+    font-size: 16px;
+    line-height: 1.5;
+    white-space: pre-line;
 }
 
-body.dark-mode .theme-slider {
-    background: #4caf50;
+.confirm-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
 }
 
-body.dark-mode .admin-slider {
-    background: #4caf50;
+/* =========================
+   POWIADOMIENIA (toast)
+   ========================= */
+
+.toast-container {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: min(380px, calc(100vw - 32px));
+    pointer-events: none;
 }
 
-/* --- panel admina --- */
-
-body.dark-mode .user-add,
-body.dark-mode .section-add {
-    background: #16161a;
-    border-color: #2e2e33;
+.toast {
+    pointer-events: auto;
+    padding: 12px 16px;
+    background: var(--surface-raised);
+    color: var(--text);
+    border: 2px solid var(--border);
+    border-left-width: 6px;
+    box-shadow: var(--shadow);
+    font-size: 15px;
+    line-height: 1.4;
+    white-space: pre-line;
+    cursor: pointer;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
-body.dark-mode .panel-title {
-    color: #4caf50;
-    border-color: #2e2e33;
+.toast.show {
+    opacity: 1;
+    transform: none;
 }
 
-body.dark-mode .panel-hint {
-    color: #b5b5b5;
+.toast-success {
+    border-left-color: var(--accent);
 }
 
-body.dark-mode .form-field label {
-    color: #c9c9c9;
-}
-
-body.dark-mode .form-field input,
-body.dark-mode .form-field select,
-body.dark-mode .section-add-form input {
-    background: #16161a;
-    color: #e6e6e6;
-    border-color: #2e2e33;
-}
-
-body.dark-mode .form-field input:focus,
-body.dark-mode .form-field select:focus,
-body.dark-mode .section-add-form input:focus {
-    border-color: #4caf50;
-}
-
-body.dark-mode .form-field input:disabled {
-    background: #1c1c20;
-    color: #777;
-}
-
-/* --- wyszukiwarka i tabele --- */
-
-body.dark-mode #search-panel {
-    background: #1c1c20;
-    border-color: #2e2e33;
-}
-
-body.dark-mode #global-search {
-    background: #16161a;
-    color: #e6e6e6;
-    border-color: #2e2e33;
-}
-
-body.dark-mode #global-search:focus {
-    border-color: #4caf50;
-}
-
-body.dark-mode #clear-search:hover {
-    background: #888;
-}
-
-body.dark-mode #search-info {
-    color: #b5b5b5;
-}
-
-body.dark-mode .table-group {
-    background: #16161a;
-    border-color: #2e2e33;
-}
-
-body.dark-mode .table-group.no-results {
-    background: #3a0f0f;
-    border-color: #e53935;
-}
-
-body.dark-mode .table-name {
-    color: #4caf50;
-}
-
-body.dark-mode .table-data {
-    background: #16161a;
-    color: #e6e6e6;
-}
-
-body.dark-mode .table-data,
-body.dark-mode .table-data th,
-body.dark-mode .table-data td {
-    border-color: #2e2e33;
-}
-
-body.dark-mode .table-data thead > tr:first-child th {
-    background: #1c1c20;
-    color: #e6e6e6;
-}
-
-body.dark-mode .table-data tbody tr:hover {
-    background: #222229;
-}
-
-body.dark-mode .table-data tbody tr.search-match {
-    background: #242c25;
-}
-
-body.dark-mode .filter-row th {
-    background: #18181c;
-}
-
-body.dark-mode .filter-input {
-    background: #16161a;
-    color: #e6e6e6;
-    border-color: #2e2e33;
-}
-
-body.dark-mode .filter-input:focus {
-    border-color: #4caf50;
+.toast-error {
+    border-left-color: var(--danger);
 }
 
 /* =========================================================
@@ -784,10 +917,8 @@ body.dark-mode .filter-input:focus {
     .section-add-form {
         flex: none;
     }
-    .section-add-form {
-        max-width: none;
-    }
     #search-panel {
+        position: static;
         padding: 10px;
         margin-bottom: 12px;
     }
@@ -810,7 +941,6 @@ body.dark-mode .filter-input:focus {
         margin-bottom: 12px;
     }
     .table-name {
-        margin-bottom: 10px;
         font-size: 18px;
     }
     .table-header {
@@ -818,6 +948,10 @@ body.dark-mode .filter-input:focus {
         gap: 8px;
         margin-bottom: 10px;
     }
+    .table-title {
+        order: -1;
+    }
+    .collapse-button,
     .delete-section-button {
         position: static;
         transform: none;
@@ -843,5 +977,9 @@ body.dark-mode .filter-input:focus {
         min-width: 70px;
         height: 34px;
         font-size: 13px;
+    }
+    .toast-container {
+        right: 16px;
+        bottom: 16px;
     }
 }

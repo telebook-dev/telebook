@@ -1,866 +1,852 @@
-const API_URL = "http://localhost:8000/api";
-const API = API_URL;
+"use strict";
 
-// ==========================================
-// INICJALIZACJA
-// ==========================================
+/* =========================================================
+   KONFIGURACJA
+   (skrypt jest ładowany na końcu <body>, więc elementy już istnieją)
+   ========================================================= */
 
-document.addEventListener("DOMContentLoaded", () => {
-    getData();
-    loadSections();
+const API = "http://localhost:8000/api";
+const UNASSIGNED = "Brak działu";
 
-    // Tryb ciemny
-    const themeToggle = document.getElementById("theme-toggle");
+// kolejność kolumn w tabeli (bez kolumny "Akcje")
+const COLUMNS = [
+    "Id",
+    "Nr telefonu",
+    "Nr pokoju",
+    "Oznaczenie użytkownika",
+    "Imię",
+    "Nazwisko",
+    "Adres pocztowy elektroniczny",
+    "Ip",
+];
 
-    if (themeToggle) {
-        themeToggle.addEventListener("change", () => {
-            document.body.classList.toggle(
-                "dark-mode",
-                themeToggle.checked
+const STORAGE = {
+    theme: "telebook-theme",
+    panels: "telebook-panels-visible",
+    collapsed: "telebook-collapsed-sections",
+};
+
+const $ = (id) => document.getElementById(id);
+
+const container = $("dynamic-tables-container");
+const globalSearch = $("global-search");
+const clearSearch = $("clear-search");
+const searchInfo = $("search-info");
+
+const state = {
+    users: [],
+    sections: [],
+    loaded: false,
+};
+
+/* =========================================================
+   NARZĘDZIA
+   ========================================================= */
+
+const storage = {
+    get(key, fallback) {
+        try {
+            const raw = localStorage.getItem(key);
+            return raw === null ? fallback : JSON.parse(raw);
+        } catch {
+            return fallback;
+        }
+    },
+    set(key, value) {
+        try {
+            localStorage.setItem(key, JSON.stringify(value));
+        } catch {
+            /* tryb prywatny / brak miejsca – pomijamy */
+        }
+    },
+};
+
+// zabezpieczenie przed XSS: wszystko, co trafia do innerHTML, przechodzi przez tę funkcję
+function escapeHtml(value) {
+    return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;",
+    }[char]));
+}
+
+// małe litery, bez ogonków (także „ł”), bez zbędnych spacji
+function normalize(text) {
+    return String(text ?? "")
+        .toLowerCase()
+        .replace(/ł/g, "l")
+        .trim()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+}
+
+function splitWords(text) {
+    return text.split(/\s+/).filter(Boolean);
+}
+
+// API zwraca albo tablicę, albo { data: [...] }
+function unwrap(json) {
+    if (Array.isArray(json)) return json;
+    if (Array.isArray(json?.data)) return json.data;
+    return [];
+}
+
+function fullName(user) {
+    return `${user.name ?? ""} ${user.last_name ?? ""}`.trim();
+}
+
+function errorText(error) {
+    return error instanceof TypeError
+        ? "brak połączenia z serwerem"
+        : error.message;
+}
+
+/* =========================================================
+   KOMUNIKACJA Z API
+   ========================================================= */
+
+async function readError(response) {
+    const data = await response.json().catch(() => ({}));
+    const details = data.errors
+        ? Object.values(data.errors).flat().join("\n")
+        : data.message;
+    return details || `Status: ${response.status}`;
+}
+
+async function api(path, options = {}) {
+    const response = await fetch(`${API}${path}`, {
+        ...options,
+        headers: {
+            Accept: "application/json",
+            ...(options.body ? { "Content-Type": "application/json" } : {}),
+            ...options.headers,
+        },
+    });
+
+    if (!response.ok) {
+        throw new Error(await readError(response));
+    }
+
+    return response.status === 204 ? null : response.json().catch(() => null);
+}
+
+/* =========================================================
+   POWIADOMIENIA (zamiast alert)
+   ========================================================= */
+
+function showToast(message, type = "success") {
+    const toast = document.createElement("div");
+    toast.className = `toast toast-${type}`;
+    toast.textContent = message;
+    toast.setAttribute("role", type === "error" ? "alert" : "status");
+    $("toast-container").appendChild(toast);
+
+    requestAnimationFrame(() => toast.classList.add("show"));
+
+    const dismiss = () => {
+        toast.classList.remove("show");
+        setTimeout(() => toast.remove(), 250);
+    };
+
+    toast.addEventListener("click", dismiss);
+    setTimeout(dismiss, type === "error" ? 7000 : 3500);
+}
+
+/* =========================================================
+   OKNO POTWIERDZENIA (zamiast confirm)
+   ========================================================= */
+
+const confirmDialog = (() => {
+    const dialog = $("confirm-dialog");
+    const okButton = $("confirm-ok");
+
+    // kliknięcie w tło zamyka okno (padding jest na <form>, więc target === dialog to tylko tło)
+    dialog.addEventListener("click", (event) => {
+        if (event.target === dialog) dialog.close("cancel");
+    });
+
+    return ({ title, message, confirmLabel = "Usuń", variant = "danger" }) =>
+        new Promise((resolve) => {
+            $("confirm-title").textContent = title;
+            $("confirm-message").textContent = message;
+            okButton.textContent = confirmLabel;
+            okButton.className = `button button-${variant}`;
+            dialog.returnValue = "";
+
+            dialog.addEventListener(
+                "close",
+                () => resolve(dialog.returnValue === "confirm"),
+                { once: true }
             );
+
+            dialog.showModal();
         });
-    }
+})();
 
-    // Widok administratora / publiczny
-    const adminToggle = document.getElementById("admin-toggle");
+/* =========================================================
+   MOTYW (jasny / ciemny)
+   ========================================================= */
 
-    if (adminToggle) {
-        adminToggle.addEventListener("change", () => {
-            const isPublic = !adminToggle.checked;
+const root = document.documentElement;
+const themeToggle = $("theme-toggle");
+const darkQuery = window.matchMedia("(prefers-color-scheme: dark)");
+const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+let themeSwitchTimer;
 
-            document.body.classList.toggle("public-view", isPublic);
-
-            if (isPublic) {
-                document
-                    .querySelectorAll(
-                        ".filter-row .admin-only .filter-input"
-                    )
-                    .forEach(input => {
-                        input.value = "";
-                    });
-            }
-
-            const globalSearch =
-                document.getElementById("global-search");
-
-            if (globalSearch) {
-                globalSearch.dispatchEvent(new Event("input"));
-            }
-        });
-    }
-
-    // Dodawanie użytkownika
-    const addUserForm = document.getElementById("add-user-form");
-
-    if (addUserForm) {
-        addUserForm.addEventListener("submit", async event => {
-            event.preventDefault();
-
-            const sectionId =
-                document.getElementById("add-section-id").value;
-
-            const newUser = {
-                section_id: Number.parseInt(sectionId, 10),
-                designation:
-                document.getElementById("add-designation").value,
-                name:
-                document.getElementById("add-name").value,
-                last_name:
-                document.getElementById("add-last-name").value,
-                email:
-                document.getElementById("add-email").value,
-                phone_number:
-                document.getElementById("add-phone").value,
-                room_number:
-                document.getElementById("add-room").value,
-                ip_number:
-                document.getElementById("add-ip").value
-            };
-
-            try {
-                const response = await fetch(`${API_URL}/userdata`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Accept": "application/json"
-                    },
-                    credentials: "include",
-                    body: JSON.stringify(newUser)
-                });
-
-                if (response.status === 401) {
-                    window.location.replace("admin-login.html");
-                    return;
-                }
-
-                if (!response.ok) {
-                    const errorData =
-                        await response.json().catch(() => ({}));
-
-                    const details = errorData.errors
-                        ? Object.values(errorData.errors).flat().join("\n")
-                        : errorData.message;
-
-                    throw new Error(
-                        details || `Status: ${response.status}`
-                    );
-                }
-
-                addUserForm.reset();
-
-                await getData();
-                await loadSections();
-
-                alert("Użytkownik został pomyślnie dodany!");
-            } catch (error) {
-                console.error("Błąd podczas dodawania użytkownika:", error);
-
-                alert(
-                    `Nie udało się dodać użytkownika: ${error.message}`
-                );
-            }
-        });
-    }
-
-    // Ograniczenie znaków w numerze telefonu
-    const phoneInput = document.getElementById("add-phone");
-
-    if (phoneInput) {
-        phoneInput.addEventListener("input", () => {
-            phoneInput.value = phoneInput.value.replace(/[^\d+\- ]/g, "");
-        });
-    }
-
-    // Dodawanie działu
-    const addSectionForm =
-        document.getElementById("add-section-form");
-
-    if (addSectionForm) {
-        addSectionForm.addEventListener("submit", async event => {
-            event.preventDefault();
-
-            const nameInput =
-                document.getElementById("add-section-name");
-
-            const department = nameInput.value.trim();
-
-            if (!department) {
-                return;
-            }
-
-            try {
-                const response = await fetch(`${API_URL}/sections`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Accept": "application/json"
-                    },
-                    credentials: "include",
-                    body: JSON.stringify({ department })
-                });
-
-                if (response.status === 401) {
-                    window.location.replace("admin-login.html");
-                    return;
-                }
-
-                if (!response.ok) {
-                    const errorData =
-                        await response.json().catch(() => ({}));
-
-                    throw new Error(
-                        errorData.message || `Status: ${response.status}`
-                    );
-                }
-
-                const created = await response.json();
-                const newId = created.id ?? created.data?.id;
-
-                nameInput.value = "";
-
-                await loadSections(newId);
-                await getData();
-            } catch (error) {
-                console.error("Błąd podczas dodawania działu:", error);
-
-                alert(
-                    `Nie udało się dodać działu: ${error.message}`
-                );
-            }
-        });
-    }
-});
-
-// ==========================================
-// OBSŁUGA SEKCJI / DZIAŁÓW
-// ==========================================
-
-async function loadSections(selectId = null) {
+function readSavedTheme() {
     try {
-        const response = await fetch(`${API_URL}/sections`, {
-            headers: {
-                "Accept": "application/json"
-            },
-            credentials: "include"
-        });
-
-        if (response.status === 401) {
-            window.location.replace("admin-login.html");
-            return;
-        }
-
-        if (!response.ok) {
-            throw new Error(`Status: ${response.status}`);
-        }
-
-        const json = await response.json();
-        const sections = Array.isArray(json) ? json : json.data;
-
-        if (!Array.isArray(sections)) {
-            throw new Error("Nieprawidłowy format danych działów.");
-        }
-
-        populateSectionSelect(sections, selectId);
-    } catch (error) {
-        console.error("Błąd podczas pobierania działów:", error);
+        return localStorage.getItem(STORAGE.theme);
+    } catch {
+        return null;
     }
 }
 
-function populateSectionSelect(sections, selectId = null) {
-    const select = document.getElementById("add-section-id");
-
-    if (!select) {
-        return;
+function saveTheme(theme) {
+    try {
+        localStorage.setItem(STORAGE.theme, theme);
+    } catch {
+        /* pomijamy */
     }
+}
 
+function applyTheme(dark, animate) {
+    if (animate && !reduceMotion.matches) {
+        // klasa włącza płynne przejście kolorów tylko na czas przełączenia
+        root.classList.add("theme-switching");
+        clearTimeout(themeSwitchTimer);
+        themeSwitchTimer = setTimeout(
+            () => root.classList.remove("theme-switching"),
+            600
+        );
+    }
+    root.classList.toggle("dark-mode", dark);
+    themeToggle.checked = dark;
+}
+
+function initTheme() {
+    const saved = readSavedTheme();
+    applyTheme(saved ? saved === "dark" : darkQuery.matches, false);
+
+    themeToggle.addEventListener("change", () => {
+        applyTheme(themeToggle.checked, true);
+        saveTheme(themeToggle.checked ? "dark" : "light");
+    });
+
+    // dopóki użytkownik sam nie wybrał motywu, podążamy za ustawieniem systemu
+    darkQuery.addEventListener("change", (event) => {
+        if (!readSavedTheme()) applyTheme(event.matches, true);
+    });
+}
+
+/* =========================================================
+   PANELE „DODAJ DZIAŁ” / „DODAJ UŻYTKOWNIKA” (pokaż / ukryj)
+   ========================================================= */
+
+function initPanelToggles() {
+    const saved = storage.get(STORAGE.panels, {});
+    const panelState = saved && typeof saved === "object" ? saved : {};
+
+    document.querySelectorAll("[data-panel-toggle]").forEach((input) => {
+        const panel = $(input.dataset.panelToggle);
+        if (!panel) return;
+
+        if (panelState[panel.id] === false) input.checked = false;
+        panel.hidden = !input.checked;
+
+        input.addEventListener("change", () => {
+            panel.hidden = !input.checked;
+            panelState[panel.id] = input.checked;
+            storage.set(STORAGE.panels, panelState);
+        });
+    });
+}
+
+/* =========================================================
+   LISTA DZIAŁÓW W FORMULARZU
+   ========================================================= */
+
+function populateSectionSelect(selectId = null) {
+    const select = $("add-section-id");
     const previous = selectId ?? select.value;
 
-    select.innerHTML =
-        '<option value="" disabled>Wybierz dział...</option>';
+    select.innerHTML = "";
 
-    [...sections]
-        .sort((a, b) =>
-            a.department.localeCompare(b.department, "pl")
-        )
-        .forEach(section => {
+    const placeholder = document.createElement("option");
+    placeholder.value = "";
+    placeholder.disabled = true;
+    placeholder.selected = true;
+    placeholder.textContent = "Wybierz dział...";
+    select.appendChild(placeholder);
+
+    [...state.sections]
+        .sort((a, b) => a.department.localeCompare(b.department, "pl"))
+        .forEach((section) => {
             const option = document.createElement("option");
-
             option.value = section.id;
             option.textContent = section.department;
-
             select.appendChild(option);
         });
 
-    if (previous != null && previous !== "") {
-        select.value = String(previous);
-    } else {
-        select.selectedIndex = 0;
+    if (previous) select.value = previous;
+}
+
+/* =========================================================
+   POBIERANIE DANYCH I RENDEROWANIE
+   ========================================================= */
+
+const collapsedSections = new Set(
+    (() => {
+        const saved = storage.get(STORAGE.collapsed, []);
+        return Array.isArray(saved) ? saved : [];
+    })()
+);
+
+let refreshToken = 0;
+
+// jedno odświeżenie = jeden komplet zapytań (użytkownicy + działy równolegle)
+async function refreshData({ selectSectionId = null } = {}) {
+    const token = ++refreshToken;
+
+    try {
+        const [users, sections] = await Promise.all([
+            api("/userdata"),
+            api("/sections"),
+        ]);
+
+        // jeśli w międzyczasie ruszyło nowsze odświeżenie, ten wynik jest już nieaktualny
+        if (token !== refreshToken) return;
+
+        state.users = unwrap(users);
+        state.sections = unwrap(sections);
+        state.loaded = true;
+
+        populateSectionSelect(selectSectionId);
+        renderGroups();
+    } catch (error) {
+        if (token !== refreshToken) return;
+        console.error("Błąd podczas pobierania danych:", error);
+
+        if (state.loaded) {
+            showToast(`Nie udało się odświeżyć danych: ${errorText(error)}`, "error");
+        } else {
+            showLoadError(error);
+        }
     }
 }
 
-// ==========================================
-// POBIERANIE DANYCH I GENEROWANIE TABEL
-// ==========================================
+function showLoadError(error) {
+    container.innerHTML = `
+        <div class="state-message">
+            <div>Nie udało się pobrać danych: ${escapeHtml(errorText(error))}</div>
+            <button type="button" class="button button-primary" data-action="retry">Spróbuj ponownie</button>
+        </div>
+    `;
+    searchInfo.textContent = "Brak danych";
+}
 
-async function getData() {
-    try {
-        const response = await fetch(`${API_URL}/userdata`, {
-            method: "GET",
-            headers: {
-                "Accept": "application/json"
-            },
-            credentials: "include"
-        });
+function rowHTML(user) {
+    const id = user.id ?? "";
+    const phone = user.phone_number || "";
+    const room = user.details?.room_number || "";
+    const designation = user.designation || "";
+    const name = user.name || "";
+    const lastName = user.last_name || "";
+    const email = user.email || "";
+    const ip = user.details?.ip_number || "";
 
-        if (response.status === 401) {
-            window.location.replace("admin-login.html");
-            return;
-        }
+    const phoneCell = phone
+        ? `<a href="tel:${escapeHtml(phone.replace(/[^\d+]/g, ""))}">${escapeHtml(phone)}</a>`
+        : "";
+    const emailCell = email
+        ? `<a href="mailto:${escapeHtml(encodeURI(email))}">${escapeHtml(email)}</a>`
+        : "";
 
-        if (!response.ok) {
-            throw new Error(`Response status: ${response.status}`);
-        }
+    return `
+        <tr>
+            <td>${escapeHtml(id)}</td>
+            <td>${phoneCell}</td>
+            <td>${escapeHtml(room)}</td>
+            <td>${escapeHtml(designation)}</td>
+            <td>${escapeHtml(name)}</td>
+            <td>${escapeHtml(lastName)}</td>
+            <td>${emailCell}</td>
+            <td>${escapeHtml(ip)}</td>
+            <td class="actions">
+                <button type="button" class="edit-button" disabled title="Edycja będzie dostępna wkrótce">Edit</button>
+                <button type="button" class="delete-button"
+                        data-action="delete-user"
+                        data-id="${escapeHtml(id)}"
+                        data-name="${escapeHtml(fullName(user))}">Delete</button>
+            </td>
+        </tr>
+    `;
+}
 
-        const json = await response.json();
-        const users = Array.isArray(json) ? json : json.data;
+function groupHTML(name, { id, users }) {
+    const safeName = escapeHtml(name);
+    const isCollapsed = collapsedSections.has(name);
+    const canDelete = users.length === 0 && id !== undefined;
 
-        if (!Array.isArray(users)) {
-            throw new Error("Nieprawidłowy format danych użytkowników.");
-        }
+    const headCells = COLUMNS.map((column) => `<th>${column}</th>`).join("");
+    const filterCells = COLUMNS.map(
+        (column) => `
+            <th><input type="text" class="filter-input" placeholder="Filtruj"
+                       aria-label="Filtruj: ${column}" autocomplete="off"></th>`
+    ).join("");
 
-        // Pobranie wszystkich działów, również pustych
-        const sectionsResponse = await fetch(`${API_URL}/sections`, {
-            headers: {
-                "Accept": "application/json"
-            },
-            credentials: "include"
-        });
+    return `
+        <div class="table-group${isCollapsed ? " collapsed" : ""}" data-dept="${safeName}">
+            <div class="table-header">
+                <button type="button" class="collapse-button" data-action="toggle-section"
+                        aria-expanded="${!isCollapsed}"
+                        aria-label="Zwiń lub rozwiń dział ${safeName}"></button>
 
-        if (sectionsResponse.status === 401) {
-            window.location.replace("admin-login.html");
-            return;
-        }
-
-        if (!sectionsResponse.ok) {
-            throw new Error(
-                `Sections status: ${sectionsResponse.status}`
-            );
-        }
-
-        const sectionsJson = await sectionsResponse.json();
-
-        const allSections = Array.isArray(sectionsJson)
-            ? sectionsJson
-            : sectionsJson.data;
-
-        if (!Array.isArray(allSections)) {
-            throw new Error("Nieprawidłowy format danych działów.");
-        }
-
-        const departmentsMap = {};
-        const sectionIds = {};
-
-        [...allSections]
-            .sort((a, b) =>
-                a.department.localeCompare(b.department, "pl")
-            )
-            .forEach(section => {
-                departmentsMap[section.department] = [];
-                sectionIds[section.department] = section.id;
-            });
-
-        // Przypisanie użytkowników do działów
-        users.forEach(user => {
-            const department =
-                user.section?.department || "Brak działu";
-
-            if (!departmentsMap[department]) {
-                departmentsMap[department] = [];
-            }
-
-            departmentsMap[department].push(user);
-        });
-
-        let allTablesHTML = "";
-
-        for (const [departmentName, departmentUsers]
-            of Object.entries(departmentsMap)) {
-
-            let rowsHTML = "";
-
-            const sectionId = sectionIds[departmentName];
-
-            const canDelete =
-                departmentUsers.length === 0 &&
-                sectionId !== undefined;
-
-            departmentUsers.forEach(user => {
-                const userId = user.id ?? "";
-                const phone = user.phone_number ?? "";
-                const room = user.details?.room_number ?? "";
-                const designation = user.designation ?? "";
-                const name = user.name ?? "";
-                const lastName = user.last_name ?? "";
-                const email = user.email ?? "";
-                const ip = user.details?.ip_number ?? "";
-
-                rowsHTML += `
-                    <tr>
-                        <td class="admin-only">${userId}</td>
-                        <td>${phone}</td>
-                        <td>${room}</td>
-                        <td>${designation}</td>
-                        <td>${name}</td>
-                        <td>${lastName}</td>
-                        <td>${email}</td>
-                        <td class="admin-only">${ip}</td>
-                        <td class="actions admin-only">
-                            <button class="edit-button">Edit</button>
-                            <button
-                                class="delete-button"
-                                data-id="${userId}"
-                            >
-                                Delete
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            });
-
-            allTablesHTML += `
-                <div class="table-group">
-                    <div class="table-header">
-                        <h2 class="table-name">${departmentName}</h2>
-
-                        ${canDelete ? `
-                            <button
-                                class="delete-section-button admin-only"
-                                data-section-id="${sectionId}"
-                                data-section-name="${departmentName}"
-                            >
-                                Usuń dział
-                            </button>
-                        ` : ""}
-                    </div>
-
-                    <div class="table-container">
-                        <table class="table-data">
-                            <thead>
-                                <tr>
-                                    <th class="admin-only">Id</th>
-                                    <th>Nr telefonu</th>
-                                    <th>Nr pokoju</th>
-                                    <th>Oznaczenie użytkownika</th>
-                                    <th>Imię</th>
-                                    <th>Nazwisko</th>
-                                    <th>Adres pocztowy elektroniczny</th>
-                                    <th class="admin-only">Ip</th>
-                                    <th class="admin-only">Akcje</th>
-                                </tr>
-
-                                <tr class="filter-row">
-                                    <th class="admin-only">
-                                        <input
-                                            type="text"
-                                            class="filter-input"
-                                            placeholder="Filtruj"
-                                        >
-                                    </th>
-                                    <th><input type="text" class="filter-input" placeholder="Filtruj"></th>
-                                    <th><input type="text" class="filter-input" placeholder="Filtruj"></th>
-                                    <th><input type="text" class="filter-input" placeholder="Filtruj"></th>
-                                    <th><input type="text" class="filter-input" placeholder="Filtruj"></th>
-                                    <th><input type="text" class="filter-input" placeholder="Filtruj"></th>
-                                    <th><input type="text" class="filter-input" placeholder="Filtruj"></th>
-                                    <th class="admin-only">
-                                        <input
-                                            type="text"
-                                            class="filter-input"
-                                            placeholder="Filtruj"
-                                        >
-                                    </th>
-                                    <th class="admin-only"></th>
-                                </tr>
-                            </thead>
-
-                            <tbody>
-                                ${rowsHTML}
-                            </tbody>
-                        </table>
-                    </div>
+                <div class="table-title">
+                    <h2 class="table-name">${safeName}</h2>
+                    <span class="table-count" title="Liczba użytkowników">${users.length}</span>
                 </div>
-            `;
-        }
 
-        const container =
-            document.getElementById("dynamic-tables-container");
+                ${canDelete ? `
+                    <button type="button" class="delete-section-button" data-action="delete-section"
+                            data-section-id="${escapeHtml(id)}"
+                            data-section-name="${safeName}">Usuń dział</button>` : ""}
+            </div>
 
-        if (!container) {
-            throw new Error("Nie znaleziono kontenera tabel.");
-        }
+            <div class="table-container">
+                <table class="table-data">
+                    <thead>
+                        <tr>${headCells}<th>Akcje</th></tr>
+                        <tr class="filter-row">${filterCells}<th></th></tr>
+                    </thead>
+                    <tbody>
+                        ${users.map(rowHTML).join("")}
+                        <tr class="empty-row" hidden><td colspan="${COLUMNS.length + 1}"></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+}
 
-        container.innerHTML = allTablesHTML;
-
-        initSearchAndFilters();
-
-        document.body.classList.remove("auth-checking");
-    } catch (error) {
-        console.error(
-            "Błąd podczas pobierania danych:",
-            error.message
+// zapamiętujemy wartości filtrów kolumn, żeby przebudowa tabel ich nie czyściła
+function captureFilters() {
+    const saved = new Map();
+    container.querySelectorAll(".table-group").forEach((group) => {
+        saved.set(
+            group.dataset.dept,
+            [...group.querySelectorAll(".filter-input")].map((input) => input.value)
         );
+    });
+    return saved;
+}
 
-        // Błędy sieci nie muszą oznaczać braku autoryzacji.
-        // Nie przekierowujemy automatycznie przy każdym błędzie.
+function restoreFilters(saved) {
+    container.querySelectorAll(".table-group").forEach((group) => {
+        const values = saved.get(group.dataset.dept);
+        if (!values) return;
+        group.querySelectorAll(".filter-input").forEach((input, index) => {
+            input.value = values[index] ?? "";
+        });
+    });
+}
+
+function renderGroups() {
+    const savedFilters = captureFilters();
+    const scrollY = window.scrollY;
+
+    const groups = new Map();
+
+    [...state.sections]
+        .sort((a, b) => a.department.localeCompare(b.department, "pl"))
+        .forEach((section) => {
+            groups.set(section.department, { id: section.id, users: [] });
+        });
+
+    state.users.forEach((user) => {
+        const department = user.section?.department || UNASSIGNED;
+        if (!groups.has(department)) {
+            groups.set(department, { id: undefined, users: [] });
+        }
+        groups.get(department).users.push(user);
+    });
+
+    if (groups.size === 0) {
+        container.innerHTML = `<div class="state-message">Nie ma jeszcze żadnych działów. Dodaj pierwszy, aby zacząć.</div>`;
+        applyFilters();
+        return;
+    }
+
+    container.innerHTML = [...groups]
+        .map(([name, group]) => groupHTML(name, group))
+        .join("");
+
+    restoreFilters(savedFilters);
+    applyFilters();
+    window.scrollTo(0, scrollY);
+}
+
+/* =========================================================
+   WYSZUKIWANIE I FILTRY
+   (nasłuchiwanie ustawiane RAZ; grupy są wyszukiwane przy każdym filtrowaniu)
+   ========================================================= */
+
+// znormalizowany tekst komórek wiersza liczymy raz i zapamiętujemy na elemencie
+function rowCells(row) {
+    if (!row._cells) {
+        row._cells = [...row.cells]
+            .filter((cell) => !cell.classList.contains("actions"))
+            .map((cell) => normalize(cell.textContent));
+    }
+    return row._cells;
+}
+
+function rowMatches(cells, department, filters, words) {
+    const rowText = `${cells.join(" ")} ${department}`;
+
+    if (!words.every((word) => rowText.includes(word))) return false;
+
+    return filters.every((filter, index) => {
+        if (!filter) return true;
+
+        const cell = cells[index];
+        if (cell === undefined) return false;
+
+        // kolumna Id: dokładne dopasowanie; pozostałe: wszystkie wpisane słowa
+        return index === 0
+            ? cell === filter
+            : splitWords(filter).every((word) => cell.includes(word));
+    });
+}
+
+function filterGroup(group, words) {
+    const table = group.querySelector(".table-data");
+    const filters = [...table.querySelectorAll(".filter-input")].map((input) =>
+        normalize(input.value)
+    );
+    const hasColumnFilters = filters.some(Boolean);
+    const department = normalize(group.dataset.dept);
+    const rows = [...table.querySelectorAll("tbody tr:not(.empty-row)")];
+
+    let visible = 0;
+
+    rows.forEach((row) => {
+        const match = rowMatches(rowCells(row), department, filters, words);
+        row.hidden = !match;
+        row.classList.toggle("search-match", match && words.length > 0);
+        if (match) visible++;
+    });
+
+    const emptyRow = table.querySelector(".empty-row");
+    emptyRow.hidden = visible !== 0;
+    emptyRow.firstElementChild.textContent =
+        rows.length === 0
+            ? "Ten dział nie ma jeszcze użytkowników"
+            : "Brak wyników dla wybranych filtrów";
+
+    group.classList.toggle(
+        "no-results",
+        rows.length > 0 && visible === 0 && (hasColumnFilters || words.length > 0)
+    );
+
+    // podczas wyszukiwania zwinięte działy rozwijają się, żeby wyniki były widoczne
+    const forceOpen = hasColumnFilters || words.length > 0;
+    group.classList.toggle("force-open", forceOpen);
+
+    const toggle = group.querySelector(".collapse-button");
+    if (toggle) {
+        const isOpen = !group.classList.contains("collapsed") || forceOpen;
+        toggle.setAttribute("aria-expanded", String(isOpen));
+    }
+
+    group.hidden = words.length > 0 && visible === 0 && !hasColumnFilters;
+
+    return visible;
+}
+
+function updateInfo(words, total, groupsCount) {
+    if (state.users.length === 0) {
+        searchInfo.textContent = "Brak użytkowników";
+    } else if (total === 0) {
+        searchInfo.textContent = "Nie znaleziono użytkowników";
+    } else if (words.length === 0) {
+        searchInfo.textContent = `Widocznych użytkowników: ${total}`;
+    } else {
+        const userWord = total === 1 ? "użytkownika" : "użytkowników";
+        const groupWord = groupsCount === 1 ? "dziale" : "działach";
+        searchInfo.textContent = `Znaleziono ${total} ${userWord} w ${groupsCount} ${groupWord}`;
     }
 }
 
-// ==========================================
-// WYSZUKIWANIE I FILTROWANIE
-// ==========================================
+function applyFilters() {
+    const words = splitWords(normalize(globalSearch.value));
+    let totalVisible = 0;
+    let visibleGroups = 0;
 
-function initSearchAndFilters() {
-    const globalSearch = document.getElementById("global-search");
-    const clearSearch = document.getElementById("clear-search");
-    const searchInfo = document.getElementById("search-info");
-
-    const groups = [
-        ...document.querySelectorAll(".table-group")
-    ];
-
-    function normalize(text) {
-        return text
-            .toLowerCase()
-            .replace(/ł/g, "l")
-            .trim()
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "");
-    }
-
-    function matchesAllWords(text, query) {
-        return query
-            .split(/\s+/)
-            .filter(Boolean)
-            .every(word => text.includes(word));
-    }
-
-    function getEmptyRow(table) {
-        let emptyRow = table.querySelector(".empty-row");
-
-        if (!emptyRow) {
-            const visibleColumns = [
-                ...table.querySelectorAll("thead tr:first-child th")
-            ].filter(th =>
-                window.getComputedStyle(th).display !== "none"
-            ).length;
-
-            emptyRow = document.createElement("tr");
-            emptyRow.className = "empty-row";
-
-            const cell = document.createElement("td");
-            cell.colSpan = visibleColumns;
-            cell.textContent =
-                "Brak wyników dla wybranych filtrów";
-
-            emptyRow.appendChild(cell);
-            table.querySelector("tbody").appendChild(emptyRow);
+    container.querySelectorAll(".table-group").forEach((group) => {
+        const count = filterGroup(group, words);
+        if (count > 0) {
+            totalVisible += count;
+            visibleGroups++;
         }
+    });
 
-        return emptyRow;
+    updateInfo(words, totalVisible, visibleGroups);
+}
+
+function clearAllFilters() {
+    globalSearch.value = "";
+    container.querySelectorAll(".filter-input").forEach((input) => {
+        input.value = "";
+    });
+    applyFilters();
+    globalSearch.focus();
+}
+
+function initSearch() {
+    globalSearch.addEventListener("input", applyFilters);
+    clearSearch.addEventListener("click", clearAllFilters);
+
+    // filtry kolumn: jeden nasłuch na kontenerze (działa też po przebudowie tabel)
+    container.addEventListener("input", (event) => {
+        if (event.target.matches(".filter-input")) applyFilters();
+    });
+}
+
+/* =========================================================
+   AKCJE W TABELACH (jeden nasłuch kliknięć na kontenerze)
+   ========================================================= */
+
+function toggleSection(button) {
+    const group = button.closest(".table-group");
+    const name = group.dataset.dept;
+
+    const nowCollapsed = group.classList.toggle("collapsed");
+    if (nowCollapsed) {
+        collapsedSections.add(name);
+    } else {
+        collapsedSections.delete(name);
     }
+    storage.set(STORAGE.collapsed, [...collapsedSections]);
 
-    function rowMatches(row, filters, globalValue, departmentName) {
-        const cells = [
-            ...row.cells
-        ].filter(cell => !cell.classList.contains("actions"));
+    const isOpen = !nowCollapsed || group.classList.contains("force-open");
+    button.setAttribute("aria-expanded", String(isOpen));
+}
 
-        const isPublic =
-            document.body.classList.contains("public-view");
+async function deleteUser(button) {
+    const { id, name } = button.dataset;
+    if (!id) return;
 
-        const rowText = normalize(
-            cells
-                .filter(cell =>
-                    !(isPublic && cell.classList.contains("admin-only"))
-                )
-                .map(cell => cell.textContent)
-                .join(" ") + " " + departmentName
+    const confirmed = await confirmDialog({
+        title: "Usunąć użytkownika?",
+        message: `${name || "Ten użytkownik"} (ID: ${id}) zostanie trwale usunięty.`,
+        confirmLabel: "Usuń",
+    });
+    if (!confirmed) return;
+
+    button.disabled = true;
+
+    try {
+        await api(`/userdata/${encodeURIComponent(id)}`, { method: "DELETE" });
+        await refreshData();
+        showToast("Użytkownik został usunięty.");
+    } catch (error) {
+        console.error("Nie udało się usunąć użytkownika:", error);
+        button.disabled = false;
+        showToast(`Nie udało się usunąć użytkownika: ${errorText(error)}`, "error");
+    }
+}
+
+async function deleteSection(button) {
+    const { sectionId, sectionName } = button.dataset;
+    if (!sectionId) return;
+
+    const confirmed = await confirmDialog({
+        title: "Usunąć dział?",
+        message: `Dział „${sectionName}” zostanie trwale usunięty.`,
+        confirmLabel: "Usuń dział",
+    });
+    if (!confirmed) return;
+
+    button.disabled = true;
+
+    try {
+        await api(`/sections/${encodeURIComponent(sectionId)}`, { method: "DELETE" });
+        await refreshData();
+        showToast(`Usunięto dział „${sectionName}”.`);
+    } catch (error) {
+        console.error("Błąd usuwania działu:", error);
+        button.disabled = false;
+        showToast(`Nie udało się usunąć działu: ${errorText(error)}`, "error");
+    }
+}
+
+function initTableActions() {
+    container.addEventListener("click", async (event) => {
+        const button = event.target.closest("button[data-action]");
+        if (!button) return;
+
+        switch (button.dataset.action) {
+            case "toggle-section":
+                toggleSection(button);
+                break;
+            case "delete-user":
+                await deleteUser(button);
+                break;
+            case "delete-section":
+                await deleteSection(button);
+                break;
+            case "retry":
+                container.innerHTML = `<div class="state-message">Ładowanie danych…</div>`;
+                await refreshData();
+                break;
+        }
+    });
+}
+
+/* =========================================================
+   FORMULARZE
+   ========================================================= */
+
+function findDuplicates(newUser) {
+    const messages = [];
+
+    const email = newUser.email.toLowerCase();
+    const sameEmail = state.users.find(
+        (user) => (user.email || "").toLowerCase() === email
+    );
+    if (sameEmail) {
+        messages.push(
+            `Adres ${newUser.email} jest już przypisany do: ${fullName(sameEmail)}.`
         );
-
-        if (
-            globalValue &&
-            !matchesAllWords(rowText, globalValue)
-        ) {
-            return false;
-        }
-
-        return filters.every((filter, index) => {
-            const value = normalize(filter.value);
-
-            if (!value) {
-                return true;
-            }
-
-            const cell = cells[index];
-
-            if (!cell) {
-                return false;
-            }
-
-            const cellText = normalize(cell.textContent);
-
-            return index === 0
-                ? cellText === value
-                : matchesAllWords(cellText, value);
-        });
     }
 
-    function filterGroup(group, globalValue) {
-        const table = group.querySelector(".table-data");
-
-        const rows = [
-            ...table.querySelectorAll(
-                "tbody tr:not(.empty-row)"
-            )
-        ];
-
-        const filters = [
-            ...table.querySelectorAll(".filter-input")
-        ];
-
-        const departmentName =
-            group.querySelector(".table-name").textContent;
-
-        let visibleInGroup = 0;
-
-        rows.forEach(row => {
-            const visible = rowMatches(
-                row,
-                filters,
-                globalValue,
-                departmentName
+    if (newUser.ip_number) {
+        const sameIp = state.users.find(
+            (user) => (user.details?.ip_number || "") === newUser.ip_number
+        );
+        if (sameIp) {
+            messages.push(
+                `Adres IP ${newUser.ip_number} jest już przypisany do: ${fullName(sameIp)}.`
             );
-
-            row.style.display = visible ? "" : "none";
-
-            row.classList.toggle(
-                "search-match",
-                visible && globalValue !== ""
-            );
-
-            if (visible) {
-                visibleInGroup++;
-            }
-        });
-
-        getEmptyRow(table).style.display =
-            visibleInGroup === 0 ? "" : "none";
-
-        const hasColumnFilters = filters.some(
-            filter => filter.value.trim() !== ""
-        );
-
-        group.classList.toggle(
-            "no-results",
-            visibleInGroup === 0 &&
-            (hasColumnFilters || globalValue !== "")
-        );
-
-        group.style.display =
-            globalValue &&
-            visibleInGroup === 0 &&
-            !hasColumnFilters
-                ? "none"
-                : "";
-
-        return visibleInGroup;
+        }
     }
 
-    function filterAll() {
-        const globalValue = normalize(
-            globalSearch?.value ?? ""
-        );
+    return messages;
+}
 
-        let totalVisible = 0;
-        let visibleGroups = 0;
+function initUserForm() {
+    const form = $("add-user-form");
+    const phoneInput = $("add-phone");
 
-        groups.forEach(group => {
-            const count = filterGroup(group, globalValue);
+    // telefon: tylko cyfry, spacje, + i -
+    phoneInput.addEventListener("input", () => {
+        phoneInput.value = phoneInput.value.replace(/[^\d+\- ]/g, "");
+    });
 
-            if (count > 0) {
-                totalVisible += count;
-                visibleGroups++;
-            }
-        });
+    form.addEventListener("submit", async (event) => {
+        event.preventDefault();
 
-        updateInfo(globalValue, totalVisible, visibleGroups);
-    }
+        const submitButton = form.querySelector(".add-user-button");
+        const value = (id) => $(id).value.trim();
 
-    function updateInfo(globalValue, total, groupsCount) {
-        if (!searchInfo) {
-            return;
+        const newUser = {
+            section_id: parseInt($("add-section-id").value, 10),
+            designation: value("add-designation"),
+            name: value("add-name"),
+            last_name: value("add-last-name"),
+            email: value("add-email"),
+            phone_number: value("add-phone"),
+            room_number: value("add-room"),
+            ip_number: value("add-ip"),
+        };
+
+        const duplicates = findDuplicates(newUser);
+        if (duplicates.length > 0) {
+            const proceed = await confirmDialog({
+                title: "Możliwy duplikat",
+                message: duplicates.join("\n"),
+                confirmLabel: "Dodaj mimo to",
+                variant: "primary",
+            });
+            if (!proceed) return;
         }
 
-        if (total === 0) {
-            searchInfo.textContent =
-                "Nie znaleziono użytkowników";
-            return;
-        }
+        submitButton.disabled = true;
 
-        if (!globalValue) {
-            searchInfo.textContent =
-                `Widocznych użytkowników: ${total}`;
-            return;
-        }
-
-        const userWord =
-            total === 1 ? "użytkownika" : "użytkowników";
-
-        const groupWord =
-            groupsCount === 1 ? "dziale" : "działach";
-
-        searchInfo.textContent =
-            `Znaleziono ${total} ${userWord} w ${groupsCount} ${groupWord}`;
-    }
-
-    function clearAll() {
-        if (globalSearch) {
-            globalSearch.value = "";
-        }
-
-        document
-            .querySelectorAll(".filter-input")
-            .forEach(input => {
-                input.value = "";
+        try {
+            await api("/userdata", {
+                method: "POST",
+                body: JSON.stringify(newUser),
             });
 
-        filterAll();
-        globalSearch?.focus();
-    }
+            // szybkie dodawanie kolejnych osób: dział zostaje wybrany, kursor wraca na początek
+            const sectionValue = $("add-section-id").value;
+            form.reset();
+            $("add-section-id").value = sectionValue;
 
-    if (globalSearch) {
-        globalSearch.addEventListener("input", filterAll);
-    }
-
-    document
-        .querySelectorAll(".filter-input")
-        .forEach(input => {
-            input.addEventListener("input", filterAll);
-        });
-
-    if (clearSearch) {
-        clearSearch.addEventListener("click", clearAll);
-    }
-
-    filterAll();
+            await refreshData();
+            showToast(`Dodano użytkownika: ${fullName(newUser)}`);
+            phoneInput.focus();
+        } catch (error) {
+            console.error("Błąd podczas dodawania użytkownika:", error);
+            showToast(`Nie udało się dodać użytkownika:\n${errorText(error)}`, "error");
+        } finally {
+            submitButton.disabled = false;
+        }
+    });
 }
 
-// ==========================================
-// USUWANIE UŻYTKOWNIKÓW I DZIAŁÓW
-// Listener jest rejestrowany tylko raz.
-// ==========================================
+function initSectionForm() {
+    const form = $("add-section-form");
+    const nameInput = $("add-section-name");
 
-document.addEventListener("click", async event => {
-    const target = event.target;
+    form.addEventListener("submit", async (event) => {
+        event.preventDefault();
 
-    if (!(target instanceof Element)) {
-        return;
-    }
+        const department = nameInput.value.trim();
+        if (!department) return;
 
-    // Usuwanie użytkownika
-    const userButton = target.closest(".delete-button");
-
-    if (userButton) {
-        const userId = userButton.dataset.id;
-
-        if (!userId) {
-            return;
-        }
-
-        if (
-            !confirm(
-                `Czy na pewno chcesz usunąć użytkownika o ID: ${userId}?`
-            )
-        ) {
-            return;
-        }
-
-        try {
-            const response = await fetch(
-                `${API_URL}/userdata/${userId}`,
-                {
-                    method: "DELETE",
-                    headers: {
-                        "Accept": "application/json"
-                    },
-                    credentials: "include"
-                }
-            );
-
-            if (response.status === 401) {
-                window.location.replace("admin-login.html");
-                return;
-            }
-
-            if (!response.ok) {
-                throw new Error(`Status: ${response.status}`);
-            }
-
-            await getData();
-        } catch (error) {
-            console.error(
-                "Nie udało się usunąć użytkownika:",
-                error
-            );
-
-            alert("Wystąpił błąd podczas usuwania użytkownika.");
-        }
-
-        return;
-    }
-
-    // Usuwanie działu
-    const sectionButton =
-        target.closest(".delete-section-button");
-
-    if (sectionButton) {
-        const id = sectionButton.dataset.sectionId;
-        const name = sectionButton.dataset.sectionName;
-
-        if (!id) {
-            return;
-        }
-
-        if (
-            !confirm(
-                `Czy na pewno chcesz usunąć dział „${name}”?`
-            )
-        ) {
-            return;
-        }
-
-        try {
-            const response = await fetch(
-                `${API_URL}/sections/${id}`,
-                {
-                    method: "DELETE",
-                    headers: {
-                        "Accept": "application/json"
-                    },
-                    credentials: "include"
-                }
-            );
-
-            if (response.status === 401) {
-                window.location.replace("admin-login.html");
-                return;
-            }
-
-            if (!response.ok) {
-                const errorData =
-                    await response.json().catch(() => ({}));
-
-                throw new Error(
-                    errorData.message || `Status: ${response.status}`
-                );
-            }
-
-            await getData();
-            await loadSections();
-        } catch (error) {
-            console.error("Błąd usuwania działu:", error);
-
-            alert(
-                `Nie udało się usunąć działu: ${error.message}`
-            );
-        }
-    }
-});
-
-// ==========================================
-// WYLOGOWANIE ADMINISTRATORA
-// ==========================================
-
-async function logout() {
-    try {
-        const response = await fetch(`${API_URL}/logout`, {
-            method: "POST",
-            headers: {
-                "Accept": "application/json"
-            },
-            credentials: "include"
-        });
-
-        if (!response.ok && response.status !== 401) {
-            throw new Error(`Status: ${response.status}`);
-        }
-    } catch (error) {
-        console.error(
-            "Błąd połączenia przy wylogowaniu:",
-            error
+        const exists = state.sections.some(
+            (section) => section.department.toLowerCase() === department.toLowerCase()
         );
-    } finally {
-        window.location.replace("admin-login.html");
-    }
+        if (exists) {
+            showToast(`Dział „${department}” już istnieje.`, "error");
+            nameInput.focus();
+            return;
+        }
+
+        const submitButton = form.querySelector("button[type='submit']");
+        submitButton.disabled = true;
+
+        try {
+            const created = await api("/sections", {
+                method: "POST",
+                body: JSON.stringify({ department }),
+            });
+            const newId = created?.id ?? created?.data?.id ?? null;
+
+            nameInput.value = "";
+            await refreshData({ selectSectionId: newId }); // nowy dział od razu zaznaczony na liście
+            showToast(`Dodano dział „${department}”.`);
+        } catch (error) {
+            console.error("Błąd podczas dodawania działu:", error);
+            showToast(`Nie udało się dodać działu: ${errorText(error)}`, "error");
+        } finally {
+            submitButton.disabled = false;
+        }
+    });
 }
 
-window.logout = logout;
+/* =========================================================
+   START
+   ========================================================= */
+
+initTheme();
+initPanelToggles();
+initSearch();
+initTableActions();
+initUserForm();
+initSectionForm();
+refreshData();
