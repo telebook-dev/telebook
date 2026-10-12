@@ -445,3 +445,11 @@ html.dark-mode #clear-search:hover,
 html.dark-mode .collapse-button:hover {
     color: #08150e;
 }
+.edit-dialog { max-width: 640px; width: 92vw; }
+.edit-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+    margin: 16px 0;
+}
+.edit-grid .form-field { display: flex; flex-direction: column; gap: 4px; }

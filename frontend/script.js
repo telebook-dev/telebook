@@ -389,7 +389,9 @@ function rowHTML(user) {
             <td>${emailCell}</td>
             <td>${ipCell}</td>
             <td class="actions">
-                <button type="button" class="edit-button" disabled title="Edycja będzie dostępna wkrótce">Edit</button>
+                <button type="button" class="edit-button"
+        data-action="edit-user"
+        data-id="${escapeHtml(id)}">Edit</button>
                 <button type="button" class="delete-button"
                         data-action="delete-user"
                         data-id="${escapeHtml(id)}"
@@ -706,6 +708,9 @@ function initTableActions() {
             case "toggle-section":
                 toggleSection(button);
                 break;
+            case "edit-user":
+                openEditDialog(button.dataset.id);
+                break;    
             case "delete-user":
                 await deleteUser(button);
                 break;
@@ -724,27 +729,27 @@ function initTableActions() {
    FORMULARZE
    ========================================================= */
 
-function findDuplicates(newUser) {
+function findDuplicates(newUser, ignoreId = null) {
+    const others = state.users.filter((u) => String(u.id) !== String(ignoreId));
     const messages = [];
 
     const email = newUser.email.toLowerCase();
-    const sameEmail = state.users.find(
-        (user) => (user.email || "").toLowerCase() === email
-    );
+    const sameEmail = others.find((user) => (user.email || "").toLowerCase() === email);
     if (sameEmail) {
-        messages.push(
-            `Adres ${newUser.email} jest już przypisany do: ${fullName(sameEmail)}.`
-        );
+        messages.push(`Adres ${newUser.email} jest już przypisany do: ${fullName(sameEmail)}.`);
     }
 
     if (newUser.ip_number) {
-        const sameIp = state.users.find(
-            (user) => (user.details?.ip_number || "") === newUser.ip_number
-        );
+        const sameIp = others.find((user) => (user.details?.ip_number || "") === newUser.ip_number);
         if (sameIp) {
-            messages.push(
-                `Adres IP ${newUser.ip_number} jest już przypisany do: ${fullName(sameIp)}.`
-            );
+            messages.push(`Adres IP ${newUser.ip_number} jest już przypisany do: ${fullName(sameIp)}.`);
+        }
+    }
+
+    if (newUser.phone_number) {
+        const samePhone = others.find((user) => (user.phone_number || "") === newUser.phone_number);
+        if (samePhone) {
+            messages.push(`Numer telefonu ${newUser.phone_number} jest już przypisany do: ${fullName(samePhone)}.`);
         }
     }
 
@@ -854,6 +859,112 @@ function initSectionForm() {
     });
 }
 
+// Funkcja edytowania danych użytkownika (przycisk „Edit”) jest obecnie wyłączona, więc nie implementujemy jej w tym momencie.
+/* =========================================================
+   EDYCJA UŻYTKOWNIKA
+   ========================================================= */
+
+let editingId = null;
+
+function openEditDialog(id) {
+    const user = state.users.find((u) => String(u.id) === String(id));
+    if (!user) {
+        showToast("Nie znaleziono użytkownika. Odśwież dane.", "error");
+        return;
+    }
+
+    editingId = user.id;
+    $("edit-id-label").textContent = `(ID: ${user.id})`;
+
+    // lista działów
+    const select = $("edit-section-id");
+    select.innerHTML = '<option value="" disabled>Wybierz dział...</option>';
+    [...state.sections]
+        .sort((a, b) => a.department.localeCompare(b.department, "pl"))
+        .forEach((section) => {
+            const option = document.createElement("option");
+            option.value = section.id;
+            option.textContent = section.department;
+            select.appendChild(option);
+        });
+    select.value = user.section?.id ?? user.section_id ?? "";
+
+    $("edit-phone").value = user.phone_number || "";
+    $("edit-room").value = user.details?.room_number || "";
+    $("edit-designation").value = user.designation || "";
+    $("edit-name").value = user.name || "";
+    $("edit-last-name").value = user.last_name || "";
+    $("edit-email").value = user.email || "";
+    $("edit-ip").value = user.details?.ip_number || "";
+
+    $("edit-dialog").showModal();
+}
+
+function initEditForm() {
+    const dialog = $("edit-dialog");
+    const form = $("edit-user-form");
+    const saveButton = $("edit-save");
+    const phoneInput = $("edit-phone");
+
+    phoneInput.addEventListener("input", () => {
+        phoneInput.value = phoneInput.value.replace(/[^\d+\- ]/g, "");
+    });
+
+    $("edit-cancel").addEventListener("click", () => dialog.close());
+
+    // kliknięcie w tło zamyka okno
+    dialog.addEventListener("click", (event) => {
+        if (event.target === dialog) dialog.close();
+    });
+
+    form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        if (editingId === null) return;
+
+        const value = (id) => $(id).value.trim();
+        const payload = {
+            section_id: parseInt($("edit-section-id").value, 10),
+            designation: value("edit-designation"),
+            name: value("edit-name"),
+            last_name: value("edit-last-name"),
+            email: value("edit-email"),
+            phone_number: value("edit-phone"),
+            room_number: value("edit-room"),
+            ip_number: value("edit-ip"),
+        };
+
+        const duplicates = findDuplicates(payload, editingId);
+        if (duplicates.length > 0) {
+            const proceed = await confirmDialog({
+                title: "Możliwy duplikat",
+                message: duplicates.join("\n"),
+                confirmLabel: "Zapisz mimo to",
+                variant: "primary",
+            });
+            if (!proceed) return;
+        }
+
+        saveButton.disabled = true;
+
+        try {
+            await api(`/userdata/${encodeURIComponent(editingId)}`, {
+                method: "PUT",
+                body: JSON.stringify(payload),
+            });
+
+            dialog.close();
+            editingId = null;
+            await refreshData();
+            showToast(`Zapisano zmiany: ${fullName(payload)}`);
+        } catch (error) {
+            console.error("Błąd podczas edycji użytkownika:", error);
+            showToast(`Nie udało się zapisać zmian:\n${errorText(error)}`, "error");
+        } finally {
+            saveButton.disabled = false;
+        }
+    });
+}
+
 /* =========================================================
    START
    ========================================================= */
@@ -864,4 +975,5 @@ initSearch();
 initTableActions();
 initUserForm();
 initSectionForm();
+initEditForm();
 refreshData();

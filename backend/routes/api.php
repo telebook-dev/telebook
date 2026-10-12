@@ -27,6 +27,7 @@ Route::middleware('auth.admin')->group(function () {
     Route::get('/sections', [SectionController::class, 'index']);
     Route::post('/sections', [SectionController::class, 'store']);
     Route::delete('/sections/{id}', [SectionController::class, 'destroy']);
+    Route::put('/userdata/{id}', [UserDataController::class, 'update']);
 
     // Sprawdzanie sesji administratora
     Route::get('/admin-data', function () {

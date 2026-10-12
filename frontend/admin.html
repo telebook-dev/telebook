@@ -185,6 +185,58 @@
      ========================= -->
 <div id="toast-container" class="toast-container" aria-live="polite"></div>
 
+
+<!-- =========================
+     PANEL EDYCJI (generowany w script.js)
+     ========================= -->   
+<dialog id="edit-dialog" class="confirm-dialog edit-dialog" aria-labelledby="edit-title">
+    <form id="edit-user-form">
+        <h2 id="edit-title" class="confirm-title">Edytuj użytkownika <span id="edit-id-label"></span></h2>
+
+        <div class="edit-grid">
+            <div class="form-field">
+                <label for="edit-phone">Nr telefonu</label>
+                <input type="tel" id="edit-phone" inputmode="tel" maxlength="20">
+            </div>
+            <div class="form-field">
+                <label for="edit-room">Nr pokoju</label>
+                <input type="text" id="edit-room">
+            </div>
+            <div class="form-field">
+                <label for="edit-section-id">Dział</label>
+                <select id="edit-section-id" required></select>
+            </div>
+            <div class="form-field">
+                <label for="edit-designation">Oznaczenie użytkownika</label>
+                <input type="text" id="edit-designation">
+            </div>
+            <div class="form-field">
+                <label for="edit-name">Imię</label>
+                <input type="text" id="edit-name" required>
+            </div>
+            <div class="form-field">
+                <label for="edit-last-name">Nazwisko</label>
+                <input type="text" id="edit-last-name" required>
+            </div>
+            <div class="form-field">
+                <label for="edit-email">Adres pocztowy elektroniczny</label>
+                <input type="email" id="edit-email" required>
+            </div>
+            <div class="form-field">
+                <label for="edit-ip">Ip</label>
+                <input type="text" id="edit-ip" maxlength="15"
+                       pattern="((25[0-5]|2[0-4][0-9]|1?[0-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1?[0-9]?[0-9])"
+                       title="Poprawny adres IPv4, np. 192.168.0.10">
+            </div>
+        </div>
+
+        <div class="confirm-actions">
+            <button type="button" id="edit-cancel" class="button button-secondary">Anuluj</button>
+            <button type="submit" id="edit-save" class="button button-primary">Zapisz zmiany</button>
+        </div>
+    </form>
+</dialog>
+
 <script src="admin.js"></script>
 <script src="script.js"></script>
 
