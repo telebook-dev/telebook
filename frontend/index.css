@@ -1,0 +1,447 @@
+/* =========================================================
+   ZMIENNE I MOTYWY - STYL PRZYCHODNI CEPELEK (KOSZYKOWA)
+   ========================================================= */
+:root {
+    --bg-color: #f3f7f5;                /* Bardzo jasne, medyczno-zielonkawe tło */
+    --text-color: #12231a;              /* Bardzo ciemna, głęboka zieleń zamiast czerni */
+    --header-bg: #ffffff;
+    --card-bg: #ffffff;
+    --border-color: #c8dad0;            /* Delikatna, zielonkawa szarość */
+
+    /* Główne barwy CePeLek (Zielona Koszykowa) */
+    --primary-color: #0d6842;          /* Wyrazista, medyczna zieleń CePeLek */
+    --primary-hover: #08492e;          /* Głęboka, ciemna zieleń na najechanie */
+    --accent-color: #10b981;           /* Świeża, medyczna mięta / turkus */
+
+    --input-bg: #ffffff;
+    --input-border: #9ec2b0;
+    --table-header-bg: #e8f2ed;        /* Jasnozielonkawe tło nagłówków */
+    --table-stripe: #f6faf8;
+    --table-hover: #d8ebd3;            /* Wyraźny, odświeżający seledyn przy najechaniu */
+    --toast-bg: #073824;
+    --toast-color: #ffffff;
+    --radius: 8px;                      /* Subtelne, uporządkowane zaokrąglenia */
+    --shadow-sm: 0 1px 3px rgba(13, 104, 66, 0.08);
+    --shadow-md: 0 4px 12px rgba(13, 104, 66, 0.12);
+}
+
+/* TRYB CIEMNY: neutralny grafit + zielone akcenty (te same role co w trybie jasnym) */
+html.dark-mode {
+    --bg-color: #070707;               /* Prawie czarne tło */
+    --text-color: #e6e6e6;
+    --header-bg: #0f0f0f;
+    --card-bg: #0f0f0f;
+    --border-color: #222222;
+
+    /* Zieleń tylko jako akcent */
+    --primary-color: #2ec483;
+    --primary-hover: #5ee0a4;
+    --accent-color: #34d399;
+
+    --input-bg: #0a0a0a;
+    --input-border: #333333;
+    --table-header-bg: #151515;        /* Neutralny, bez zieleni */
+    --table-stripe: #0b0b0b;
+    --table-hover: #1a1a1a;            /* Neutralny hover wiersza */
+    --toast-bg: #e6e6e6;
+    --toast-color: #070707;
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.7);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.75);
+}
+
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    line-height: 1.6;
+    font-size: 1.05rem;                 /* Powiększona bazowa czcionka */
+    padding-bottom: 3rem;
+    transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+/* =========================================================
+   HEADER (NAGŁÓWEK KANIKUŁOWY / MEDYCZNY)
+   ========================================================= */
+.admin-header {
+    background-color: var(--header-bg);
+    padding: 1.25rem 2.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 3px solid var(--primary-color); /* Akcent zieleni CePeLek */
+    box-shadow: var(--shadow-sm);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.admin-header h1 {
+    font-size: 1.6rem;                  /* Powiększony tytuł */
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--primary-color);
+    text-transform: uppercase;
+}
+
+.header-toggles {
+    display: flex;
+    gap: 1.75rem;
+    align-items: center;
+}
+
+.toggle-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.toggle-label {
+    font-size: 1rem;                    /* Powiększona etykieta przełącznika */
+    font-weight: 600;
+}
+
+/* Przełącznik (Switch) */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 48px;
+    height: 26px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: var(--input-border);
+    transition: .25s ease;
+    border-radius: 26px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .25s ease;
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+}
+
+input:checked + .slider {
+    background-color: var(--primary-color);
+}
+
+input:checked + .slider:before {
+    transform: translateX(22px);
+}
+
+/* =========================================================
+   SEKCJA GŁÓWNA I WYSZUKIWANIE (95% SZEROKOŚCI)
+   ========================================================= */
+#data-tables-section {
+    width: 95%;
+    max-width: 95%;
+    margin: 2rem auto;
+    padding: 0;
+}
+
+#search-panel {
+    background-color: var(--card-bg);
+    padding: 1.75rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--border-color);
+    border-left: 5px solid var(--primary-color); /* Medyczny pasek dekoracyjny */
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow-md);
+}
+
+#search-wrapper {
+    display: flex;
+    gap: 1rem;
+}
+
+#global-search {
+    flex: 1;
+    padding: 0.85rem 1.25rem;
+    font-size: 1.1rem;                  /* Powiększony input wyszukiwania */
+    border: 2px solid var(--input-border);
+    border-radius: calc(var(--radius) - 2px);
+    background-color: var(--input-bg);
+    color: var(--text-color);
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+#global-search:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 4px rgba(13, 104, 66, 0.18);
+}
+
+#clear-search {
+    padding: 0 1.5rem;
+    background-color: var(--input-bg);
+    border: 2px solid var(--input-border);
+    border-radius: calc(var(--radius) - 2px);
+    color: var(--text-color);
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 1rem;                    /* Powiększony przycisk czyszczenia */
+    transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+}
+
+#clear-search:hover {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: #ffffff;
+}
+
+#search-info {
+    margin-top: 1rem;
+    font-size: 1rem;                    /* Powiększony tekst informacyjny */
+    color: #3b604e;
+    font-weight: 600;
+}
+
+/* =========================================================
+   TABELE / SEKCJE DZIAŁÓW (Generowane dynamicznie)
+   ========================================================= */
+.table-group {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    margin-bottom: 1.75rem;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.2s;
+}
+
+.table-group:hover {
+    box-shadow: var(--shadow-md);
+}
+
+.table-header {
+    padding: 1.1rem 1.5rem;
+    background-color: var(--table-header-bg);
+    border-bottom: 2px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.collapse-button {
+    background: none;
+    border: 1px solid var(--input-border);
+    cursor: pointer;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary-color);
+    border-radius: 4px;
+    background-color: var(--card-bg);
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.collapse-button:hover {
+    background-color: var(--primary-color);
+    color: #ffffff;
+}
+
+/* Strzałka zwijania sekcji */
+.collapse-button::before {
+    content: "▼";
+    font-size: 0.85rem;
+    transition: transform 0.2s ease;
+}
+
+.table-group.collapsed .collapse-button::before {
+    transform: rotate(-90deg);
+}
+
+.table-title {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex: 1;
+}
+
+.table-name {
+    font-size: 1.25rem;                 /* Powiększona nazwa działu/tabeli */
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.table-count {
+    background-color: var(--primary-color);
+    color: #ffffff;
+    padding: 0.25rem 0.75rem;
+    border-radius: 14px;
+    font-size: 0.85rem;                 /* Powiększony licznik rekordów */
+    font-weight: 700;
+}
+
+.table-container {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.table-group.collapsed .table-container {
+    display: none;
+}
+
+.table-data {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 1.05rem;                 /* Powiększony tekst w tabeli */
+}
+
+.table-data th,
+.table-data td {
+    padding: 1rem 1.25rem;              /* Większe odstępy dla wygody klikania */
+    border-bottom: 1px solid var(--border-color);
+    white-space: nowrap;
+}
+
+.table-data th {
+    background-color: var(--table-header-bg);
+    font-weight: 700;
+    color: var(--primary-color);
+    font-size: 0.95rem;                 /* Powiększone nagłówki kolumn */
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+/* Wiersz z filtrami kolumnowymi */
+.filter-row th {
+    padding: 0.6rem 1rem;
+    background-color: var(--card-bg);
+    border-bottom: 2px solid var(--border-color);
+}
+
+.filter-input {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.95rem;                 /* Powiększone filtry kolumnowe */
+    border: 1px solid var(--input-border);
+    border-radius: 4px;
+    background-color: var(--input-bg);
+    color: var(--text-color);
+    outline: none;
+}
+
+.filter-input:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(13, 104, 66, 0.2);
+}
+
+.table-data tbody tr:nth-child(even) {
+    background-color: var(--table-stripe);
+}
+
+.table-data tbody tr:hover {
+    background-color: var(--table-hover);
+}
+
+/* Linki w tabeli (telefon, mail) */
+.table-data td a {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 600;
+    border-bottom: 1px transparent dashed;
+    transition: border-color 0.2s;
+}
+
+.table-data td a:hover {
+    color: var(--primary-hover);
+    border-bottom-color: var(--primary-hover);
+    text-decoration: none;
+}
+
+.state-message {
+    text-align: center;
+    padding: 3.5rem;
+    color: #3b604e;
+    font-size: 1.15rem;                 /* Powiększony tekst komunikatów */
+    font-weight: 500;
+}
+
+/* =========================================================
+   POWIADOMIENIA (TOASTY)
+   ========================================================= */
+.toast-container {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    z-index: 1000;
+}
+
+.toast {
+    background-color: var(--toast-bg);
+    color: var(--toast-color);
+    padding: 14px 22px;
+    border-radius: var(--radius);
+    font-size: 1rem;                    /* Powiększony powiadomienie toast */
+    font-weight: 500;
+    border-left: 4px solid var(--accent-color);
+    box-shadow: 0 10px 20px -3px rgba(0, 0, 0, 0.2);
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.25s, transform 0.25s;
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* =========================================================
+   TRYB CIEMNY - POPRAWKI ELEMENTÓW Z KOLORAMI NA SZTYWNO
+   (celowo na końcu pliku, żeby nadpisywały reguły bazowe)
+   ========================================================= */
+html.dark-mode #search-info {
+    color: #9a9a9a;
+}
+
+html.dark-mode .state-message {
+    color: #8a8a8a;
+}
+
+html.dark-mode #global-search:focus {
+    box-shadow: 0 0 0 4px rgba(46, 196, 131, 0.22);
+}
+
+html.dark-mode .filter-input:focus {
+    box-shadow: 0 0 0 2px rgba(46, 196, 131, 0.28);
+}
+
+/* Nagłówki kolumn neutralne - zieleń zostaje tylko w tytułach, linkach i badge'ach */
+html.dark-mode .table-data th {
+    color: #a8a8a8;
+}
+
+/* Jasna zieleń + biały tekst = słaby kontrast, więc ciemny tekst na zielonym tle */
+html.dark-mode .table-count,
+html.dark-mode #clear-search:hover,
+html.dark-mode .collapse-button:hover {
+    color: #08150e;
+}
