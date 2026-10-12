@@ -1,4 +1,5 @@
 * {
+    box-sizing: border-box;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
 }
@@ -8,94 +9,287 @@ html, body {
 }
 
 body {
+    margin: 0;
+    background: #000;
+    color: #e8eaed;
+    font-family: "Google Sans", "Inter", "Roboto", system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 16px;
+}
+
+/* ---------- Tło: deszcz kropek ---------- */
+
+.container {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
-    flex-direction: column;
-    position: relative;
-    background: linear-gradient(135deg, rgba(36, 46, 77, 0.9), rgba(137, 126, 121, 0.9));
-    font-family: "Roboto", helvetica, arial, sans-serif;
-    font-size: 1.5em;
-}
-body:before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 100%;
     width: 100%;
-    background-image: url(data:image/png;base64,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);
-    opacity: 0.3;
+    min-height: 100%;
+    height: 100dvh;
+    overflow: hidden;
+    background-color: #000;
+    --c1:  #09f;
+    --c2:  #1fdc4f;
+    --c3:  #ff2d3d;
+    --c4:  #2a6bff;
+    --c5:  #00e676;
+    --c6:  #ff6b7a;
+    --c7:  #4dc3ff;
+    --c8:  #0b9a3e;
+    --c9:  #d91e2f;
+    --c10: #7dff9a;
+    --c11: #1e50d0;
+    --c12: #ff4757;
+
+    background-image:
+        radial-gradient(4px 100px at 0px 235px, var(--c1), #0000),
+        radial-gradient(4px 100px at 300px 235px, var(--c1), #0000),
+        radial-gradient(1.5px 1.5px at 150px 117.5px, var(--c1) 100%, #0000 150%),
+        radial-gradient(4px 100px at 0px 252px, var(--c2), #0000),
+        radial-gradient(4px 100px at 300px 252px, var(--c2), #0000),
+        radial-gradient(1.5px 1.5px at 150px 126px, var(--c2) 100%, #0000 150%),
+        radial-gradient(4px 100px at 0px 150px, var(--c3), #0000),
+        radial-gradient(4px 100px at 300px 150px, var(--c3), #0000),
+        radial-gradient(1.5px 1.5px at 150px 75px, var(--c3) 100%, #0000 150%),
+        radial-gradient(4px 100px at 0px 253px, var(--c4), #0000),
+        radial-gradient(4px 100px at 300px 253px, var(--c4), #0000),
+        radial-gradient(1.5px 1.5px at 150px 126.5px, var(--c4) 100%, #0000 150%),
+        radial-gradient(4px 100px at 0px 204px, var(--c5), #0000),
+        radial-gradient(4px 100px at 300px 204px, var(--c5), #0000),
+        radial-gradient(1.5px 1.5px at 150px 102px, var(--c5) 100%, #0000 150%),
+        radial-gradient(4px 100px at 0px 134px, var(--c6), #0000),
+        radial-gradient(4px 100px at 300px 134px, var(--c6), #0000),
+        radial-gradient(1.5px 1.5px at 150px 67px, var(--c6) 100%, #0000 150%),
+        radial-gradient(4px 100px at 0px 179px, var(--c7), #0000),
+        radial-gradient(4px 100px at 300px 179px, var(--c7), #0000),
+        radial-gradient(1.5px 1.5px at 150px 89.5px, var(--c7) 100%, #0000 150%),
+        radial-gradient(4px 100px at 0px 299px, var(--c8), #0000),
+        radial-gradient(4px 100px at 300px 299px, var(--c8), #0000),
+        radial-gradient(1.5px 1.5px at 150px 149.5px, var(--c8) 100%, #0000 150%),
+        radial-gradient(4px 100px at 0px 215px, var(--c9), #0000),
+        radial-gradient(4px 100px at 300px 215px, var(--c9), #0000),
+        radial-gradient(1.5px 1.5px at 150px 107.5px, var(--c9) 100%, #0000 150%),
+        radial-gradient(4px 100px at 0px 281px, var(--c10), #0000),
+        radial-gradient(4px 100px at 300px 281px, var(--c10), #0000),
+        radial-gradient(1.5px 1.5px at 150px 140.5px, var(--c10) 100%, #0000 150%),
+        radial-gradient(4px 100px at 0px 158px, var(--c11), #0000),
+        radial-gradient(4px 100px at 300px 158px, var(--c11), #0000),
+        radial-gradient(1.5px 1.5px at 150px 79px, var(--c11) 100%, #0000 150%),
+        radial-gradient(4px 100px at 0px 210px, var(--c12), #0000),
+        radial-gradient(4px 100px at 300px 210px, var(--c12), #0000),
+        radial-gradient(1.5px 1.5px at 150px 105px, var(--c12) 100%, #0000 150%);
+    background-size:
+        300px 235px, 300px 235px, 300px 235px,
+        300px 252px, 300px 252px, 300px 252px,
+        300px 150px, 300px 150px, 300px 150px,
+        300px 253px, 300px 253px, 300px 253px,
+        300px 204px, 300px 204px, 300px 204px,
+        300px 134px, 300px 134px, 300px 134px,
+        300px 179px, 300px 179px, 300px 179px,
+        300px 299px, 300px 299px, 300px 299px,
+        300px 215px, 300px 215px, 300px 215px,
+        300px 281px, 300px 281px, 300px 281px,
+        300px 158px, 300px 158px, 300px 158px,
+        300px 210px, 300px 210px, 300px 210px;
+    animation: rain 150s linear infinite;
 }
 
-.login-form {
-    width: 100%;
-    padding: 2em;
-    position: relative;
-    background: rgba(0, 0, 0, 0.15);
-}
-.login-form:before {
+/* Siatka kropek nałożona na deszcz (efekt matrycy LED) */
+.container::after {
     content: "";
     position: absolute;
-    top: -2px;
-    left: 0;
-    height: 2px;
-    width: 100%;
-    background: linear-gradient(to right, #156109, #267c12);
+    inset: 0;
+    z-index: 1;
+    backdrop-filter: blur(1em) brightness(3.5);
+    -webkit-backdrop-filter: blur(1em) brightness(3.5);
+    background-image: radial-gradient(
+        circle at 50% 50%,
+        #0000 0,
+        #0000 2px,
+        hsl(0 0% 4%) 2px
+    );
+    background-size: 8px 8px;
 }
-@media screen and (min-width: 600px) {
-    .login-form {
-        width: 50vw;
-        max-width: 15em;
+
+/* Winieta: przyciemnia środek, żeby karta była czytelna,
+   a deszcz „oddychał" na brzegach */
+.container::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    background: radial-gradient(
+        ellipse 70% 60% at 50% 50%,
+        rgba(0, 0, 0, 0.88) 0%,
+        rgba(0, 0, 0, 0.55) 55%,
+        rgba(0, 0, 0, 0) 100%
+    );
+}
+
+@keyframes rain {
+    0% {
+        background-position:
+            0px 220px, 3px 220px, 151.5px 337.5px,
+            25px 24px, 28px 24px, 176.5px 150px,
+            50px 16px, 53px 16px, 201.5px 91px,
+            75px 224px, 78px 224px, 226.5px 350.5px,
+            100px 19px, 103px 19px, 251.5px 121px,
+            125px 120px, 128px 120px, 276.5px 187px,
+            150px 31px, 153px 31px, 301.5px 120.5px,
+            175px 235px, 178px 235px, 326.5px 384.5px,
+            200px 121px, 203px 121px, 351.5px 228.5px,
+            225px 224px, 228px 224px, 376.5px 364.5px,
+            250px 26px, 253px 26px, 401.5px 105px,
+            275px 75px, 278px 75px, 426.5px 180px;
+    }
+    to {
+        background-position:
+            0px 6800px, 3px 6800px, 151.5px 6917.5px,
+            25px 13632px, 28px 13632px, 176.5px 13758px,
+            50px 5416px, 53px 5416px, 201.5px 5491px,
+            75px 17175px, 78px 17175px, 226.5px 17301.5px,
+            100px 5119px, 103px 5119px, 251.5px 5221px,
+            125px 8428px, 128px 8428px, 276.5px 8495px,
+            150px 9876px, 153px 9876px, 301.5px 9965.5px,
+            175px 13391px, 178px 13391px, 326.5px 13540.5px,
+            200px 14741px, 203px 14741px, 351.5px 14848.5px,
+            225px 18770px, 228px 18770px, 376.5px 18910.5px,
+            250px 5082px, 253px 5082px, 401.5px 5161px,
+            275px 6375px, 278px 6375px, 426.5px 6480px;
     }
 }
 
+/* ---------- Karta logowania ---------- */
+
+.login-form {
+    position: relative;
+    z-index: 3; /* nad siatką (1) i winietą (2) */
+    width: min(calc(100% - 2rem), 380px);
+    padding: 2.5rem 2rem 2rem;
+    background: rgba(24, 24, 27, 0.55);
+    backdrop-filter: blur(24px) saturate(140%);
+    -webkit-backdrop-filter: blur(24px) saturate(140%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 28px;
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.06) inset,
+        0 30px 80px rgba(0, 0, 0, 0.5);
+}
+
+.lf--title {
+    margin: 0 0 2rem;
+    color: #fff;
+    font-size: 1.5rem;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    text-align: center;
+}
+
+/* ---------- Pola ---------- */
+
 .flex-row {
     display: flex;
-    margin-bottom: 1em;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 14px;
+    overflow: hidden;
+    transition: border-color 0.2s, background 0.2s;
+}
+
+.flex-row:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.flex-row:focus-within {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(138, 180, 248, 0.9);
 }
 
 .lf--label {
-    width: 2em;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #f5f6f8;
+    flex: 0 0 3rem;
+    align-self: stretch;
+    background: transparent;
     cursor: pointer;
+}
+
+.lf--label svg {
+    opacity: 0.7;
 }
 
 .lf--input {
     flex: 1;
-    padding: 1em;
+    min-width: 0;
+    padding: 0.95rem 1rem 0.95rem 0;
+    background: transparent;
     border: 0;
-    color: #8f8f8f;
-    font-size: 1rem;
-}
-.lf--input:focus {
     outline: none;
+    color: #fff;
+    font: inherit;
+    font-size: 0.95rem;
 }
+
+.lf--input::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+/* Autouzupełnianie przeglądarki nie psuje ciemnego stylu */
+.lf--input:-webkit-autofill {
+    -webkit-text-fill-color: #fff;
+    transition: background-color 9999s ease-out;
+    box-shadow: 0 0 0 100px transparent inset;
+}
+
+/* ---------- Przycisk ---------- */
 
 .lf--submit {
     display: block;
-    padding: 1em;
     width: 100%;
-    background: linear-gradient(to right, #156109, #267c12);
+    margin-top: 1.5rem;
+    padding: 0.95rem 1rem;
+    background: #fff;
     border: 0;
-    color: #fff;
+    border-radius: 999px;
+    color: #111;
     cursor: pointer;
-    font-size: 0.75em;
+    font: inherit;
+    font-size: 0.8rem;
     font-weight: 600;
-    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
+    letter-spacing: 0.06em;
+    transition: transform 0.15s, box-shadow 0.2s, background 0.2s;
 }
+
+.lf--submit:hover {
+    background: #f1f3f4;
+    box-shadow: 0 6px 24px rgba(255, 255, 255, 0.15);
+}
+
+.lf--submit:active {
+    transform: scale(0.985);
+}
+
+.lf--submit:focus-visible {
+    outline: 2px solid #8ab4f8;
+    outline-offset: 3px;
+}
+
+/* ---------- Dodatki ---------- */
 
 .lf--forgot {
-    margin-top: 1em;
-    color: #2ed600;
-    font-size: 0.65em;
+    margin-top: 1.25rem;
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 0.8rem;
     text-align: center;
-    position: relative;
 }
 
-::placeholder {
-    color: #8f8f8f;
+/* Użytkownicy z wyłączonymi animacjami dostają statyczne tło */
+@media (prefers-reduced-motion: reduce) {
+    .container {
+        animation: none;
+    }
 }
