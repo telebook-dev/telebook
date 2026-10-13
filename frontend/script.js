@@ -369,7 +369,11 @@ function rowHTML(user) {
         ? `<a href="tel:${escapeHtml(phone.replace(/[^\d+]/g, ""))}">${escapeHtml(phone)}</a>`
         : "";
     const emailCell = email
-        ? `<a href="mailto:${escapeHtml(encodeURI(email))}">${escapeHtml(email)}</a>`
+        ? email
+            .split(/\s+/)
+            .filter(Boolean)
+            .map(e => `<a href="mailto:${escapeHtml(encodeURI(e))}">${escapeHtml(e)}</a>`)
+            .join("<br>")
         : "";
 
     // IP jako link do noVNC (pulpit w przeglądarce) + osobny link do AnyDesk (aplikacja lokalna)
@@ -752,10 +756,6 @@ function initUserForm() {
     const form = $("add-user-form");
     const phoneInput = $("add-phone");
 
-    // telefon: tylko cyfry, spacje, + i -
-    phoneInput.addEventListener("input", () => {
-        phoneInput.value = phoneInput.value.replace(/[^\d+\- ]/g, "");
-    });
 
     form.addEventListener("submit", async (event) => {
         event.preventDefault();
@@ -896,10 +896,6 @@ function initEditForm() {
     const form = $("edit-user-form");
     const saveButton = $("edit-save");
     const phoneInput = $("edit-phone");
-
-    phoneInput.addEventListener("input", () => {
-        phoneInput.value = phoneInput.value.replace(/[^\d+\- ]/g, "");
-    });
 
     $("edit-cancel").addEventListener("click", () => dialog.close());
 

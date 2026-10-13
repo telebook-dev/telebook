@@ -17,8 +17,8 @@ return new class extends Migration
                 ->unique()
                 ->constrained('userdata')
                 ->cascadeOnDelete();
-            $table->string('room_number');
-            $table->string('ip_number');
+            $table->string('room_number')->nullable();
+            $table->string('ip_number')->nullable();
             $table->timestamps();
         });
     }

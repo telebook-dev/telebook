@@ -20,10 +20,10 @@ class UserDataController extends Controller
         $data = $request->validate([
             'section_id'   => 'required|exists:sections,id',
             'designation'  => 'nullable|string|max:255',
-            'name'         => 'required|string|max:255',
-            'last_name'    => 'required|string|max:255',
-            'email'        => 'required|email|unique:userdata,email',
-            'phone_number' => 'nullable|string|max:20',
+            'name'         => 'nullable|string|max:255',
+            'last_name'    => 'nullable|string|max:255',
+            'email'        => 'nullable|string|max:255',
+            'phone_number' => 'nullable|string|max:60',
             'room_number'  => 'nullable|string|max:50',
             'ip_number'    => 'nullable|string|max:45',
         ]);

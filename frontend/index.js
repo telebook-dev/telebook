@@ -42,7 +42,13 @@ const telLink = (v) =>
     v ? `<a href="tel:${escapeHtml(v.replace(/[^\d+]/g, ""))}">${escapeHtml(v)}</a>` : "";
 
 const mailLink = (v) =>
-    v ? `<a href="mailto:${escapeHtml(encodeURI(v))}">${escapeHtml(v)}</a>` : "";
+    v
+        ? v
+            .split(/[\s,;]+/)
+            .filter(Boolean)
+            .map(e => `<a href="mailto:${escapeHtml(encodeURI(e))}">${escapeHtml(e)}</a>`)
+            .join("<br>")
+        : "";
 
 const COLUMNS = [
     { key: "phone",       label: "Tel",                          value: (u) => u.phone_number, render: telLink },

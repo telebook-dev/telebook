@@ -15,9 +15,9 @@ return new class extends Migration
         $table->id();
         $table->foreignId('section_id')->constrained('sections')->restrictOnDelete();
         $table->string('designation')->nullable();
-        $table->string('name');
-        $table->string('last_name');
-        $table->string('email')->unique();
+        $table->string('name')->nullable();
+        $table->string('last_name')->nullable();
+        $table->string('email')->unique()->nullable();
         $table->string('phone_number')->nullable();
         $table->timestamps();
     });
