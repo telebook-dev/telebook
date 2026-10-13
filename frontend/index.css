@@ -351,12 +351,12 @@ html.dark-mode .table-data th {
 
 /* Szerokości kolumn (klasy generowane z COLUMNS w app.js) */
 .table-data .col-id          { width: 55px;  min-width: 45px; text-align: center; }
-.table-data .col-phone       { width: 130px; min-width: 105px; white-space: nowrap; }
-.table-data .col-room        { width: 90px;  min-width: 75px; }
-.table-data .col-designation { min-width: 130px; }
+.table-data .col-phone       { width: 130px; min-width: 105px; white-space: nowrap; text-align: center }
+.table-data .col-room        { width: 90px;  min-width: 75px;text-align: center }
+.table-data .col-designation { min-width: 130px; text-align: center;}
 .table-data .col-name,
-.table-data .col-last_name   { min-width: 100px; }
-.table-data .col-email       { min-width: 180px; }
+.table-data .col-last_name   { min-width: 100px; text-align: center}
+.table-data .col-email       { min-width: 180px; text-align: center}
 
 /* Filtry kolumnowe */
 .filter-row th {
