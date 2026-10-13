@@ -7,23 +7,55 @@
 const API = "http://localhost:8000/api";
 const UNASSIGNED = "Brak działu";
 
-// Kolejność kolumn w tabeli dla zwykłego użytkownika
-const COLUMNS = [
-    "Id",
-    "Nr telefonu",
-    "Nr pokoju",
-    "Oznaczenie użytkownika",
-    "Imię",
-    "Nazwisko",
-    "Adres pocztowy elektroniczny",
-];
-
 const STORAGE = {
     theme: "telebook-theme",
-    collapsed: "telebook-collapsed-sections",
 };
 
+/* =========================================================
+   NARZĘDZIA
+   ========================================================= */
+
 const $ = (id) => document.getElementById(id);
+
+// Zabezpieczenie przed XSS
+function escapeHtml(value) {
+    return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;",
+    }[char]));
+}
+
+/* =========================================================
+   KOLUMNY - JEDNO MIEJSCE DEFINICJI
+   Aby usunąć / dodać / przestawić kolumnę, edytuj tylko tę tablicę.
+   key    - klasa CSS (col-<key>), np. .col-phone
+   label  - nagłówek, placeholder filtra i etykieta kart na telefonie
+   value  - skąd brać wartość z obiektu użytkownika
+   render - (opcjonalnie) własny HTML komórki, dostaje już tekst
+   exact  - (opcjonalnie) filtr kolumny wymaga dokładnego dopasowania
+   ========================================================= */
+
+const telLink = (v) =>
+    v ? `<a href="tel:${escapeHtml(v.replace(/[^\d+]/g, ""))}">${escapeHtml(v)}</a>` : "";
+
+const mailLink = (v) =>
+    v ? `<a href="mailto:${escapeHtml(encodeURI(v))}">${escapeHtml(v)}</a>` : "";
+
+const COLUMNS = [
+    { key: "phone",       label: "Tel",                          value: (u) => u.phone_number, render: telLink },
+    { key: "room",        label: "Pokój",                        value: (u) => u.details?.room_number },
+    { key: "designation", label: "Oznaczenie użytkownika",       value: (u) => u.designation },
+    { key: "name",        label: "Imię",                         value: (u) => u.name },
+    { key: "last_name",   label: "Nazwisko",                     value: (u) => u.last_name },
+    { key: "email",       label: "Adres pocztowy elektroniczny", value: (u) => u.email, render: mailLink },
+];
+
+/* =========================================================
+   ELEMENTY STRONY I STAN
+   ========================================================= */
 
 const container = $("dynamic-tables-container");
 const globalSearch = $("global-search");
@@ -35,10 +67,6 @@ const state = {
     sections: [],
     loaded: false,
 };
-
-/* =========================================================
-   NARZĘDZIA
-   ========================================================= */
 
 const storage = {
     get(key, fallback) {
@@ -53,21 +81,10 @@ const storage = {
         try {
             localStorage.setItem(key, JSON.stringify(value));
         } catch {
-            /* tryb prywatny / brak miejsca – pomijamy */
+            /* tryb prywatny / brak miejsca - pomijamy */
         }
     },
 };
-
-// Zabezpieczenie przed XSS
-function escapeHtml(value) {
-    return String(value ?? "").replace(/[&<>"']/g, (char) => ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#39;",
-    }[char]));
-}
 
 // Normalizowanie tekstu do wyszukiwania (małe litery, bez ogonków)
 function normalize(text) {
@@ -103,7 +120,7 @@ function errorText(error) {
 async function api(path, options = {}) {
     const response = await fetch(`${API}${path}`, {
         ...options,
-        credentials: 'include', // <--- KLUCZOWE: wysyła ciasteczko sesyjne do backendu
+        credentials: "include", // wysyła ciasteczko sesyjne do backendu
         headers: {
             Accept: "application/json",
             ...options.headers,
@@ -177,13 +194,6 @@ function initTheme() {
    POBIERANIE DANYCH I RENDEROWANIE
    ========================================================= */
 
-const collapsedSections = new Set(
-    (() => {
-        const saved = storage.get(STORAGE.collapsed, []);
-        return Array.isArray(saved) ? saved : [];
-    })()
-);
-
 let refreshToken = 0;
 
 async function refreshData() {
@@ -220,47 +230,33 @@ function showLoadError(error) {
 }
 
 function rowHTML(user) {
-    const id = user.id ?? "";
-    const phone = user.phone_number || "";
-    const room = user.details?.room_number || "";
-    const designation = user.designation || "";
-    const name = user.name || "";
-    const lastName = user.last_name || "";
-    const email = user.email || "";
+    const cells = COLUMNS.map((col) => {
+        const raw = col.value(user);
+        const text = raw === null || raw === undefined ? "" : String(raw);
+        const html = col.render ? col.render(text) : escapeHtml(text);
+        return `<td class="col-${col.key}" data-label="${escapeHtml(col.label)}">${html}</td>`;
+    }).join("");
 
-    const phoneCell = phone
-        ? `<a href="tel:${escapeHtml(phone.replace(/[^\d+]/g, ""))}">${escapeHtml(phone)}</a>`
-        : "";
-    const emailCell = email
-        ? `<a href="mailto:${escapeHtml(encodeURI(email))}">${escapeHtml(email)}</a>`
-        : "";
-
-    return `
-        <tr>
-            <td>${escapeHtml(id)}</td>
-            <td>${phoneCell}</td>
-            <td>${escapeHtml(room)}</td>
-            <td>${escapeHtml(designation)}</td>
-            <td>${escapeHtml(name)}</td>
-            <td>${escapeHtml(lastName)}</td>
-            <td>${emailCell}</td>
-        </tr>
-    `;
+    return `<tr>${cells}</tr>`;
 }
 
 function groupHTML(name, { users }) {
     const safeName = escapeHtml(name);
-    const isCollapsed = collapsedSections.has(name);
 
-    const headCells = COLUMNS.map((column) => `<th>${column}</th>`).join("");
+    const headCells = COLUMNS.map(
+        (col) => `<th class="col-${col.key}">${escapeHtml(col.label)}</th>`
+    ).join("");
+
     const filterCells = COLUMNS.map(
-        (column) => `
-            <th><input type="text" class="filter-input" placeholder="Filtruj"
-                       aria-label="Filtruj: ${column}" autocomplete="off"></th>`
+        (col) => `
+            <th class="col-${col.key}">
+                <input type="text" class="filter-input" placeholder="${escapeHtml(col.label)}"
+                       aria-label="Filtruj: ${escapeHtml(col.label)}" autocomplete="off">
+            </th>`
     ).join("");
 
     return `
-        <div class="table-group${isCollapsed ? " collapsed" : ""}" data-dept="${safeName}">
+        <div class="table-group" data-dept="${safeName}">
             <div class="table-header">
                 <div class="table-title">
                     <h2 class="table-name">${safeName}</h2>
@@ -361,7 +357,7 @@ function rowMatches(cells, department, filters, words) {
         const cell = cells[index];
         if (cell === undefined) return false;
 
-        return index === 0
+        return COLUMNS[index]?.exact
             ? cell === filter
             : splitWords(filter).every((word) => cell.includes(word));
     });
@@ -396,15 +392,6 @@ function filterGroup(group, words) {
         "no-results",
         rows.length > 0 && visible === 0 && (hasColumnFilters || words.length > 0)
     );
-
-    const forceOpen = hasColumnFilters || words.length > 0;
-    group.classList.toggle("force-open", forceOpen);
-
-    const toggle = group.querySelector(".collapse-button");
-    if (toggle) {
-        const isOpen = !group.classList.contains("collapsed") || forceOpen;
-        toggle.setAttribute("aria-expanded", String(isOpen));
-    }
 
     group.hidden = words.length > 0 && visible === 0 && !hasColumnFilters;
 
@@ -463,24 +450,8 @@ function initSearch() {
 }
 
 /* =========================================================
-   OBSŁUGA ZWIJANIA SEKCJI
+   AKCJE W TABELACH
    ========================================================= */
-
-function toggleSection(button) {
-    const group = button.closest(".table-group");
-    const name = group.dataset.dept;
-
-    const nowCollapsed = group.classList.toggle("collapsed");
-    if (nowCollapsed) {
-        collapsedSections.add(name);
-    } else {
-        collapsedSections.delete(name);
-    }
-    storage.set(STORAGE.collapsed, [...collapsedSections]);
-
-    const isOpen = !nowCollapsed || group.classList.contains("force-open");
-    button.setAttribute("aria-expanded", String(isOpen));
-}
 
 function initTableActions() {
     container.addEventListener("click", async (event) => {
@@ -488,9 +459,6 @@ function initTableActions() {
         if (!button) return;
 
         switch (button.dataset.action) {
-            case "toggle-section":
-                toggleSection(button);
-                break;
             case "retry":
                 container.innerHTML = `<div class="state-message">Ładowanie danych…</div>`;
                 await refreshData();
