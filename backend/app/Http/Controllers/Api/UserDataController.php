@@ -52,8 +52,8 @@ class UserDataController extends Controller
         $data = $request->validate([
             'section_id'   => 'required|exists:sections,id',
             'designation'  => 'nullable|string|max:255',
-            'name'         => 'required|string|max:255',
-            'last_name'    => 'required|string|max:255',
+            'name'         => 'nullable|string|max:255',
+            'last_name'    => 'nullable|string|max:255',
             'email'        => [
                 'nullable',
                 'string',
