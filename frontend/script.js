@@ -372,13 +372,15 @@ function rowHTML(user) {
         ? `<a href="mailto:${escapeHtml(encodeURI(email))}">${escapeHtml(email)}</a>`
         : "";
 
-    // Tutaj zamieniamy zwykły tekst IP na link do noVNC
-    // Zakładamy, że noVNC działa na porcie 6080 pod adresem hosta, na którym stoi Twój panel (window.location.hostname)
+    // IP jako link do noVNC (pulpit w przeglądarce) + osobny link do AnyDesk (aplikacja lokalna)
+    // noVNC/websockify działa na porcie 6080 pod adresem hosta, na którym stoi panel (window.location.hostname)
+    // Adres IP staje się klikalnym linkiem uruchamiającym AnyDesk
     let ipCell = "";
     if (ip) {
-        // window.location.hostname wykryje czy jesteś na localhost, czy na serwerze produkcyjnym
-        const novncUrl = `http://${window.location.hostname}:6080/vnc.html?path=${encodeURIComponent("websockify?token=" + ip)}&autoconnect=1&resize=scale`;
-        ipCell = `<a href="${novncUrl}" target="_blank" title="Otwórz pulpit VNC">${escapeHtml(ip)}</a>`;
+        const anydeskUrl = `anydesk:${encodeURIComponent(ip)}`;
+        ipCell = `
+            <a href="${escapeHtml(anydeskUrl)}" title="Połącz przez AnyDesk">${escapeHtml(ip)}</a>
+        `;
     }
 
     return `
@@ -700,7 +702,7 @@ function initTableActions() {
                 break;
             case "edit-user":
                 openEditDialog(button.dataset.id);
-                break;    
+                break;
             case "delete-user":
                 await deleteUser(button);
                 break;
@@ -849,7 +851,6 @@ function initSectionForm() {
     });
 }
 
-// Funkcja edytowania danych użytkownika (przycisk „Edit”) jest obecnie wyłączona, więc nie implementujemy jej w tym momencie.
 /* =========================================================
    EDYCJA UŻYTKOWNIKA
    ========================================================= */
