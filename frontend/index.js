@@ -262,13 +262,8 @@ function groupHTML(name, { users }) {
     return `
         <div class="table-group${isCollapsed ? " collapsed" : ""}" data-dept="${safeName}">
             <div class="table-header">
-                <button type="button" class="collapse-button" data-action="toggle-section"
-                        aria-expanded="${!isCollapsed}"
-                        aria-label="Zwiń lub rozwiń dział ${safeName}"></button>
-
                 <div class="table-title">
                     <h2 class="table-name">${safeName}</h2>
-                    <span class="table-count" title="Liczba użytkowników">${users.length}</span>
                 </div>
             </div>
 
