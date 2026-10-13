@@ -59,7 +59,7 @@ class UserDataController extends Controller
                 'string',
                 Rule::unique('userdata', 'email')->ignore($user->id),
             ],
-            'phone_number' => 'nullable|string|max:20',
+            'phone_number' => 'nullable|string|max:60',
             'room_number'  => 'nullable|string|max:50',
             'ip_number'    => 'nullable|string|max:45',
         ]);
