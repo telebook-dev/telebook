@@ -645,7 +645,8 @@ button:disabled {
 
 .table-data {
     width: 100%;
-    min-width: 950px;
+    min-width: 900px;          /* tylko zabezpieczenie dla bardzo wąskich ekranów */
+    table-layout: fixed;       /* szerokości kolumn z <colgroup>, nic się nie rozpycha */
     border-collapse: collapse;
     background: var(--surface);
     color: var(--text);
@@ -657,22 +658,26 @@ button:disabled {
     border: 2px solid var(--border);
 }
 
+.table-data th,
+.table-data td {
+    overflow-wrap: anywhere;   /* długie nazwisko / e-mail zawijają się w swojej komórce */
+    word-break: break-word;
+}
+
 .table-data thead > tr:first-child th {
-    padding: 10px 12px;
-    font-size: 15px;
+    padding: 8px 8px;
+    font-size: 14px;
     line-height: 1.2;
     background: var(--surface-head);
     color: var(--text);
-    white-space: nowrap;
 }
 
 .table-data tbody td {
-    padding: 7px 12px;
-    height: 44px;
+    padding: 6px 8px;
+    min-height: 44px;
     text-align: center;
-    font-size: 18px;
-    line-height: 1.2;
-    white-space: nowrap;
+    font-size: 16px;
+    line-height: 1.25;
 }
 
 .table-data tbody tr:hover {
@@ -728,20 +733,18 @@ button:disabled {
    AKCJE
    ========================= */
 
-.actions {
+actions {
     padding: 4px !important;
-    white-space: nowrap;
 }
 
 .actions button {
-    width: auto;
-    min-width: 75px;
-    height: 36px;
-    padding: 0 10px;
-    margin: 0 2px;
+    min-width: 58px;
+    height: 32px;
+    padding: 0 8px;
+    margin: 2px;
     border: none;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: bold;
     color: #ffffff;
     border-radius: 3px;
@@ -867,10 +870,6 @@ button:disabled {
     .table-name {
         font-size: 20px;
     }
-    .table-data tbody td {
-        font-size: 17px;
-        padding: 6px 10px;
-    }
 }
 
 @media (max-width: 650px) {
@@ -951,7 +950,6 @@ button:disabled {
     .table-title {
         order: -1;
     }
-    .collapse-button,
     .delete-section-button {
         position: static;
         transform: none;
@@ -964,18 +962,8 @@ button:disabled {
         padding: 8px 10px;
         font-size: 14px;
     }
-    .table-data tbody td {
-        padding: 6px 9px;
-        height: 42px;
-        font-size: 17px;
-    }
     .filter-input {
         height: 32px;
-        font-size: 13px;
-    }
-    .actions button {
-        min-width: 70px;
-        height: 34px;
         font-size: 13px;
     }
     .toast-container {

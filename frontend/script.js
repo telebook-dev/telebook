@@ -11,8 +11,8 @@ const UNASSIGNED = "Brak działu";
 // kolejność kolumn w tabeli (bez kolumny "Akcje")
 const COLUMNS = [
     "Id",
-    "Nr telefonu",
-    "Nr pokoju",
+    "Telefon",
+    "Pokój",
     "Oznaczenie użytkownika",
     "Imię",
     "Nazwisko",
@@ -20,10 +20,13 @@ const COLUMNS = [
     "Ip",
 ];
 
+// szerokości kolumn w % (razem z "Akcje" = 100)
+const COLUMN_WIDTHS = [4, 6, 4, 12, 10, 14, 23, 7];
+const ACTIONS_WIDTH = 9;
+
 const STORAGE = {
     theme: "telebook-theme",
     panels: "telebook-panels-visible",
-    collapsed: "telebook-collapsed-sections",
 };
 
 const $ = (id) => document.getElementById(id);
@@ -403,9 +406,11 @@ function rowHTML(user) {
 
 function groupHTML(name, { id, users }) {
     const safeName = escapeHtml(name);
-    const isCollapsed = collapsedSections.has(name);
     const canDelete = users.length === 0 && id !== undefined;
 
+    const colgroup =
+        COLUMN_WIDTHS.map((w) => `<col style="width:${w}%">`).join("") +
+        `<col style="width:${ACTIONS_WIDTH}%">`;
     const headCells = COLUMNS.map((column) => `<th>${column}</th>`).join("");
     const filterCells = COLUMNS.map(
         (column) => `
@@ -414,17 +419,11 @@ function groupHTML(name, { id, users }) {
     ).join("");
 
     return `
-        <div class="table-group${isCollapsed ? " collapsed" : ""}" data-dept="${safeName}">
+        <div class="table-group" data-dept="${safeName}">
             <div class="table-header">
-                <button type="button" class="collapse-button" data-action="toggle-section"
-                        aria-expanded="${!isCollapsed}"
-                        aria-label="Zwiń lub rozwiń dział ${safeName}"></button>
-
                 <div class="table-title">
                     <h2 class="table-name">${safeName}</h2>
-                    <span class="table-count" title="Liczba użytkowników">${users.length}</span>
                 </div>
-
                 ${canDelete ? `
                     <button type="button" class="delete-section-button" data-action="delete-section"
                             data-section-id="${escapeHtml(id)}"
@@ -433,6 +432,7 @@ function groupHTML(name, { id, users }) {
 
             <div class="table-container">
                 <table class="table-data">
+                    <colgroup>${colgroup}</colgroup>
                     <thead>
                         <tr>${headCells}<th>Akcje</th></tr>
                         <tr class="filter-row">${filterCells}<th></th></tr>
@@ -562,20 +562,10 @@ function filterGroup(group, words) {
             ? "Ten dział nie ma jeszcze użytkowników"
             : "Brak wyników dla wybranych filtrów";
 
-    group.classList.toggle(
+        group.classList.toggle(
         "no-results",
         rows.length > 0 && visible === 0 && (hasColumnFilters || words.length > 0)
     );
-
-    // podczas wyszukiwania zwinięte działy rozwijają się, żeby wyniki były widoczne
-    const forceOpen = hasColumnFilters || words.length > 0;
-    group.classList.toggle("force-open", forceOpen);
-
-    const toggle = group.querySelector(".collapse-button");
-    if (toggle) {
-        const isOpen = !group.classList.contains("collapsed") || forceOpen;
-        toggle.setAttribute("aria-expanded", String(isOpen));
-    }
 
     group.hidden = words.length > 0 && visible === 0 && !hasColumnFilters;
 
