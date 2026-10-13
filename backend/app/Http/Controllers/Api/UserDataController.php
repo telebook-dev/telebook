@@ -55,8 +55,8 @@ class UserDataController extends Controller
             'name'         => 'required|string|max:255',
             'last_name'    => 'required|string|max:255',
             'email'        => [
-                'required',
-                'email',
+                'nullable',
+                'string',
                 Rule::unique('userdata', 'email')->ignore($user->id),
             ],
             'phone_number' => 'nullable|string|max:20',
