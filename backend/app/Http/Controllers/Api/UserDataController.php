@@ -6,7 +6,6 @@ use App\Models\UserData;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
 
 class UserDataController extends Controller
 {
@@ -57,7 +56,6 @@ class UserDataController extends Controller
             'email'        => [
                 'nullable',
                 'string',
-                Rule::unique('userdata', 'email')->ignore($user->id),
             ],
             'phone_number' => 'nullable|string|max:60',
             'room_number'  => 'nullable|string|max:50',
