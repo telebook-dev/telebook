@@ -3,13 +3,14 @@
 Panel administracyjny do zarządzania książką telefoniczną firmy: użytkownicy pogrupowani w działy, wyszukiwarka globalna, filtry kolumn, edycja, usuwanie, kontrola duplikatów oraz szybkie łączenie ze stanowiskiem przez AnyDesk (kliknięcie w adres IP).
 
 - **Backend:** Laravel (REST API pod `/api`) + PostgreSQL
-- **Frontend:** statyczne pliki HTML / CSS / vanilla JS (`index.html`, `style.css`, `admin.js`, `script.js`), bez bundlera i frameworka
+- **Frontend:** statyczne pliki HTML / CSS / vanilla JS, bez frameworka
 - **Logowanie:** sesja (cookie) – frontend wysyła `credentials: "include"`, a przy odpowiedzi `401` przekierowuje na `admin-login.html`
 
 ---
 
 ## Spis treści
 
+0. [Struktura projektu – co robi każdy plik](#0-struktura-projektu--co-robi-każdy-plik)
 1. [Wymagania](#1-wymagania)
 2. [Klonowanie repozytorium](#2-klonowanie-repozytorium)
 3. [Baza PostgreSQL](#3-baza-postgresql)
@@ -21,6 +22,85 @@ Panel administracyjny do zarządzania książką telefoniczną firmy: użytkowni
 9. [Jak działa frontend (`script.js`)](#9-jak-działa-frontend-scriptjs)
 10. [Instrukcja obsługi panelu](#10-instrukcja-obsługi-panelu)
 11. [Rozwiązywanie problemów](#11-rozwiązywanie-problemów)
+
+---
+
+## 0. Struktura projektu – co robi każdy plik
+
+Projekt składa się z dwóch niezależnych części w osobnych folderach:
+
+- **`backend/`** – "mózg" aplikacji (Laravel, PHP). Przechowuje dane w bazie PostgreSQL, pilnuje logowania i udostępnia dane przez API.
+- **`frontend/`** – to, co użytkownik widzi w przeglądarce (strony, wygląd, przyciski). Frontend nie ma własnej bazy: pyta backend o dane i wysyła mu zmiany.
+
+Jak to działa w skrócie: użytkownik klika coś na stronie → skrypt JS wysyła zapytanie do API → backend sprawdza, czy użytkownik jest zalogowany → pobiera lub zapisuje dane w bazie → odsyła odpowiedź → strona się odświeża.
+
+### 0.1. Backend (`backend/`)
+
+#### Kod aplikacji – `app/`
+
+| Plik / folder | Za co odpowiada |
+|---|---|
+| `Http/Controllers/Api/UserDataController.php` | Obsługuje **użytkowników** książki telefonicznej: lista, dodawanie, edycja, usuwanie. |
+| `Http/Controllers/Api/SectionController.php` | Obsługuje **działy** (np. IT, Księgowość): lista, dodawanie, usuwanie. |
+| `Http/Controllers/AuthController.php` | **Logowanie i wylogowanie** administratora. |
+| `Http/Controllers/Controller.php` | Bazowa klasa, po której dziedziczą pozostałe kontrolery. Zwykle pusta. |
+| `Http/Middleware/` | "Strażnicy" żądań – sprawdzają np., czy ktoś jest zalogowany, zanim dostanie dane. |
+| `Models/` | Opis tabel z bazy w kodzie PHP (np. użytkownik, dział), dzięki czemu nie trzeba pisać SQL ręcznie. |
+| `Providers/` | Startowa konfiguracja aplikacji. Rzadko się go zmienia. |
+
+#### Pozostałe foldery
+
+| Folder | Za co odpowiada |
+|---|---|
+| `routes/` | **Mapa adresów API** – np. `/api/sections` trafia do `SectionController`. |
+| `database/` | **Migracje** (przepisy na tworzenie tabel w PostgreSQL) i opcjonalnie dane startowe (seedery). |
+| `config/` | Ustawienia Laravela (baza, sesje, cache itd.). Większość wartości czyta z `.env`. |
+| `bootstrap/` | Uruchamianie frameworka i pliki cache. |
+| `public/` | Jedyny folder dostępny z zewnątrz; zawiera `index.php` – punkt wejścia dla serwera WWW. |
+| `storage/` | Logi (`storage/logs/laravel.log`), cache, sesje. Tu zagląda się, gdy coś nie działa. |
+| `vendor/` | Biblioteki PHP pobrane przez Composer. Nie edytuje się ich i nie wrzuca do gita. |
+| `node_modules/` | Biblioteki JS pobrane przez npm. Tak samo – nie edytuje się ich. |
+| `.idea/` | Ustawienia edytora PhpStorm/IntelliJ. Nie wpływa na działanie aplikacji. |
+
+#### Pliki w głównym folderze `backend/`
+
+| Plik | Za co odpowiada |
+|---|---|
+| `.env` | **Ustawienia środowiska**: dane dostępu do bazy, tryb produkcyjny, klucz aplikacji. Zawiera hasła – pilnuj, kto go widzi. |
+| `.env.example` | Wzór pliku `.env` (bez haseł) – punkt wyjścia przy nowej instalacji. |
+| `composer.json` | Lista bibliotek PHP, których potrzebuje projekt, oraz wymagana wersja PHP. |
+| `composer.lock` | Dokładne wersje bibliotek PHP, żeby każdy miał to samo. Generowany automatycznie. |
+| `artisan` | Narzędzie wiersza poleceń Laravela (`php artisan migrate`, `php artisan serve` itd.). |
+| `package.json` / `package-lock.json` | Lista i dokładne wersje bibliotek JS (narzędzia do budowania zasobów). |
+| `vite.config.js` | Konfiguracja Vite, narzędzia do budowania zasobów JS/CSS. W tym projekcie frontend jest osobno, więc to głównie pozostałość po domyślnej instalacji Laravela. |
+| `phpunit.xml` | Konfiguracja testów automatycznych. |
+| `.editorconfig` | Wspólne zasady formatowania kodu (wcięcia, kodowanie) dla różnych edytorów. |
+| `.gitignore` / `.gitattributes` | Co git ma pomijać (np. `vendor`, `.env`) i jak traktować pliki. |
+| `README.md` | Ten opis projektu (może być też kopia w głównym folderze repozytorium). |
+| `AGENTS.md`, `CLAUDE.md`, `boost.json`, `.mcp.json` | Pliki dla asystentów AI (instrukcje i konfiguracja narzędzi, np. Laravel Boost). Aplikacji nie dotyczą. |
+| `.npmrc` | Ustawienia menedżera pakietów npm. |
+
+### 0.2. Frontend (`frontend/`)
+
+| Plik | Za co odpowiada |
+|---|---|
+| `admin-login.html` | **Strona logowania** administratora. Tu wraca użytkownik, gdy sesja wygaśnie. |
+| `index.html` | **Główna strona panelu** – wyszukiwarka, formularze dodawania działu i użytkownika oraz tabele z danymi. |
+| `script.js` | **Logika panelu** (szczegóły w sekcji 9): pobieranie danych z API, rysowanie tabel, wyszukiwanie, filtry, edycja, usuwanie, kontrola duplikatów. |
+| `style.css` | **Wygląd panelu** (kolory, tabele, tryb ciemny, okna dialogowe). |
+| `admin.html`, `admin.js`, `admin.css` | Zestaw odpowiedzialny za część administracyjną/logowanie (strona, jej skrypt i style). |
+| `index.js`, `index.css` | Dodatkowy skrypt i style powiązane ze stroną główną. |
+| `package.json` / `package-lock.json` | Lista i dokładne wersje bibliotek JS używanych przy pracy nad frontendem. |
+
+> **Uwaga:** opis plików `admin.*`, `index.js` i `index.css` jest orientacyjny – sprawdź ich zawartość i popraw ten fragment, jeśli któryś pełni inną rolę (np. jeśli to pozostałości po starszej wersji i można je usunąć).
+
+### 0.3. Pliki w głównym folderze repozytorium
+
+| Plik | Za co odpowiada |
+|---|---|
+| `.gitignore` | Co git ma pomijać w całym repozytorium. |
+| `package.json` / `package-lock.json` | Konfiguracja npm na poziomie całego projektu. |
+| `readme.md` | Ten opis projektu. |
 
 ---
 
