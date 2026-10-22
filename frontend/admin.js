@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:8000/api';
+const API_URL = 'http://10.10.1.5:8000/api';
 
 // ========================================
 // SPRAWDZANIE DOSTĘPU W PANELU (admin.html)
