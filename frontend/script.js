@@ -418,11 +418,6 @@ function groupHTML(name, { id, users }) {
         COLUMN_WIDTHS.map((w) => `<col style="width:${w}%">`).join("") +
         `<col style="width:${ACTIONS_WIDTH}%">`;
     const headCells = COLUMNS.map((column) => `<th>${column}</th>`).join("");
-    const filterCells = COLUMNS.map(
-        (column) => `
-            <th><input type="text" class="filter-input" placeholder="Filtruj"
-                       aria-label="Filtruj: ${column}" autocomplete="off"></th>`
-    ).join("");
 
     return `
         <div class="table-group" data-dept="${safeName}">
@@ -441,7 +436,6 @@ function groupHTML(name, { id, users }) {
                     <colgroup>${colgroup}</colgroup>
                     <thead>
                         <tr>${headCells}<th>Akcje</th></tr>
-                        <tr class="filter-row">${filterCells}<th></th></tr>
                     </thead>
                     <tbody>
                         ${users.map(rowHTML).join("")}
@@ -453,30 +447,7 @@ function groupHTML(name, { id, users }) {
     `;
 }
 
-// zapamiętujemy wartości filtrów kolumn, żeby przebudowa tabel ich nie czyściła
-function captureFilters() {
-    const saved = new Map();
-    container.querySelectorAll(".table-group").forEach((group) => {
-        saved.set(
-            group.dataset.dept,
-            [...group.querySelectorAll(".filter-input")].map((input) => input.value)
-        );
-    });
-    return saved;
-}
-
-function restoreFilters(saved) {
-    container.querySelectorAll(".table-group").forEach((group) => {
-        const values = saved.get(group.dataset.dept);
-        if (!values) return;
-        group.querySelectorAll(".filter-input").forEach((input, index) => {
-            input.value = values[index] ?? "";
-        });
-    });
-}
-
 function renderGroups() {
-    const savedFilters = captureFilters();
     const scrollY = window.scrollY;
 
     const groups = new Map();
@@ -505,7 +476,6 @@ function renderGroups() {
         .map(([name, group]) => groupHTML(name, group))
         .join("");
 
-    restoreFilters(savedFilters);
     applyFilters();
     window.scrollTo(0, scrollY);
 }
@@ -525,37 +495,20 @@ function rowCells(row) {
     return row._cells;
 }
 
-function rowMatches(cells, department, filters, words) {
+function rowMatches(cells, department, words) {
     const rowText = `${cells.join(" ")} ${department}`;
-
-    if (!words.every((word) => rowText.includes(word))) return false;
-
-    return filters.every((filter, index) => {
-        if (!filter) return true;
-
-        const cell = cells[index];
-        if (cell === undefined) return false;
-
-        // kolumna Id: dokładne dopasowanie; pozostałe: wszystkie wpisane słowa
-        return index === 0
-            ? cell === filter
-            : splitWords(filter).every((word) => cell.includes(word));
-    });
+    return words.every((word) => rowText.includes(word));
 }
 
 function filterGroup(group, words) {
     const table = group.querySelector(".table-data");
-    const filters = [...table.querySelectorAll(".filter-input")].map((input) =>
-        normalize(input.value)
-    );
-    const hasColumnFilters = filters.some(Boolean);
     const department = normalize(group.dataset.dept);
     const rows = [...table.querySelectorAll("tbody tr:not(.empty-row)")];
 
     let visible = 0;
 
     rows.forEach((row) => {
-        const match = rowMatches(rowCells(row), department, filters, words);
+        const match = rowMatches(rowCells(row), department, words);
         row.hidden = !match;
         row.classList.toggle("search-match", match && words.length > 0);
         if (match) visible++;
@@ -566,17 +519,14 @@ function filterGroup(group, words) {
     emptyRow.firstElementChild.textContent =
         rows.length === 0
             ? "Ten dział nie ma jeszcze użytkowników"
-            : "Brak wyników dla wybranych filtrów";
+            : "Brak wyników dla wyszukiwania";
 
-        group.classList.toggle(
-        "no-results",
-        rows.length > 0 && visible === 0 && (hasColumnFilters || words.length > 0)
-    );
-
-    group.hidden = words.length > 0 && visible === 0 && !hasColumnFilters;
+    group.classList.toggle("no-results", rows.length > 0 && visible === 0 && words.length > 0);
+    group.hidden = words.length > 0 && visible === 0;
 
     return visible;
 }
+
 
 function updateInfo(words, total, groupsCount) {
     if (state.users.length === 0) {
@@ -610,9 +560,6 @@ function applyFilters() {
 
 function clearAllFilters() {
     globalSearch.value = "";
-    container.querySelectorAll(".filter-input").forEach((input) => {
-        input.value = "";
-    });
     applyFilters();
     globalSearch.focus();
 }
@@ -620,11 +567,6 @@ function clearAllFilters() {
 function initSearch() {
     globalSearch.addEventListener("input", applyFilters);
     clearSearch.addEventListener("click", clearAllFilters);
-
-    // filtry kolumn: jeden nasłuch na kontenerze (działa też po przebudowie tabel)
-    container.addEventListener("input", (event) => {
-        if (event.target.matches(".filter-input")) applyFilters();
-    });
 }
 
 /* =========================================================
