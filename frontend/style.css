@@ -537,12 +537,33 @@ button:disabled {
 }
 
 .table-header {
-    position: relative;
     display: flex;
     align-items: center;
-    justify-content: center;
-    min-height: 36px;
-    margin-bottom: 15px;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.table-header-actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.move-buttons {
+    display: inline-flex;
+    gap: 0.25rem;
+}
+
+.move-button {
+    min-width: 2rem;
+    padding: 0.25rem 0.5rem;
+    cursor: pointer;
+}
+
+.move-button:disabled {
+    opacity: 0.35;
+    cursor: default;
 }
 
 .table-title {
@@ -613,10 +634,6 @@ button:disabled {
 /* --- usuwanie pustego działu --- */
 
 .delete-section-button {
-    position: absolute;
-    right: 0;
-    top: 50%;
-    transform: translateY(-50%);
     height: 36px;
     padding: 0 14px;
     border: none;
@@ -625,6 +642,7 @@ button:disabled {
     color: #ffffff;
     font-size: 14px;
     font-weight: bold;
+    white-space: nowrap;
     cursor: pointer;
 }
 

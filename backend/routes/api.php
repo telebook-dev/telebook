@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\SectionController;
 use App\Http\Controllers\Api\UserDataController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\SectionOrderController;
 use Illuminate\Support\Facades\Route;
 
 // ==========================================
@@ -16,6 +17,9 @@ Route::get('/sections', [SectionController::class, 'index']);
 // ==========================================
 // 2. TRASY CHRONIONE — ADMIN
 // ==========================================
+
+Route::get('/section-order', [SectionOrderController::class, 'show']);
+Route::put('/section-order', [SectionOrderController::class, 'update']);
 
 Route::middleware('auth.admin')->group(function () {
 

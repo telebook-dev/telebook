@@ -39,6 +39,7 @@ const searchInfo = $("search-info");
 const state = {
     users: [],
     sections: [],
+    sectionOrder: [],
     loaded: false,
 };
 
@@ -301,6 +302,18 @@ function populateSectionSelect(selectId = null) {
     if (previous) select.value = previous;
 }
 
+function getOrderedSections() {
+    const rank = new Map(state.sectionOrder.map((id, index) => [String(id), index]));
+
+    return [...state.sections].sort((a, b) => {
+        const ra = rank.has(String(a.id)) ? rank.get(String(a.id)) : Infinity;
+        const rb = rank.has(String(b.id)) ? rank.get(String(b.id)) : Infinity;
+
+        if (ra === rb) return a.department.localeCompare(b.department, "pl");
+        return ra < rb ? -1 : 1;
+    });
+}
+
 /* =========================================================
    POBIERANIE DANYCH I RENDEROWANIE
    ========================================================= */
@@ -319,16 +332,17 @@ async function refreshData({ selectSectionId = null } = {}) {
     const token = ++refreshToken;
 
     try {
-        const [users, sections] = await Promise.all([
+        const [users, sections, order] = await Promise.all([
             api("/userdata"),
             api("/sections"),
+            api("/section-order").catch(() => []),
         ]);
 
-        // jeśli w międzyczasie ruszyło nowsze odświeżenie, ten wynik jest już nieaktualny
         if (token !== refreshToken) return;
 
         state.users = unwrap(users);
         state.sections = unwrap(sections);
+        state.sectionOrder = Array.isArray(order) ? order : unwrap(order);
         state.loaded = true;
 
         populateSectionSelect(selectSectionId);
@@ -410,14 +424,25 @@ function rowHTML(user) {
     `;
 }
 
-function groupHTML(name, { id, users }) {
+function groupHTML(name, { id, users }, position = {}) {
     const safeName = escapeHtml(name);
     const canDelete = users.length === 0 && id !== undefined;
+    const canMove = id !== undefined;
 
     const colgroup =
         COLUMN_WIDTHS.map((w) => `<col style="width:${w}%">`).join("") +
         `<col style="width:${ACTIONS_WIDTH}%">`;
     const headCells = COLUMNS.map((column) => `<th>${column}</th>`).join("");
+
+    const moveButtons = canMove ? `
+        <div class="move-buttons">
+            <button type="button" class="move-button" data-action="move-section" data-dir="up"
+                    data-section-id="${escapeHtml(id)}" title="Przesuń w górę"
+                    aria-label="Przesuń dział w górę" ${position.isFirst ? "disabled" : ""}>↑</button>
+            <button type="button" class="move-button" data-action="move-section" data-dir="down"
+                    data-section-id="${escapeHtml(id)}" title="Przesuń w dół"
+                    aria-label="Przesuń dział w dół" ${position.isLast ? "disabled" : ""}>↓</button>
+        </div>` : "";
 
     return `
         <div class="table-group" data-dept="${safeName}">
@@ -425,10 +450,13 @@ function groupHTML(name, { id, users }) {
                 <div class="table-title">
                     <h2 class="table-name">${safeName}</h2>
                 </div>
-                ${canDelete ? `
-                    <button type="button" class="delete-section-button" data-action="delete-section"
-                            data-section-id="${escapeHtml(id)}"
-                            data-section-name="${safeName}">Usuń dział</button>` : ""}
+                <div class="table-header-actions">
+                    ${moveButtons}
+                    ${canDelete ? `
+                        <button type="button" class="delete-section-button" data-action="delete-section"
+                                data-section-id="${escapeHtml(id)}"
+                                data-section-name="${safeName}">Usuń dział</button>` : ""}
+                </div>
             </div>
 
             <div class="table-container">
@@ -447,16 +475,48 @@ function groupHTML(name, { id, users }) {
     `;
 }
 
+let savingOrder = false;
+
+async function moveSection(button) {
+    if (savingOrder) return;
+
+    const id = String(button.dataset.sectionId);
+    const step = button.dataset.dir === "up" ? -1 : 1;
+
+    const ids = getOrderedSections().map((section) => String(section.id));
+    const from = ids.indexOf(id);
+    const to = from + step;
+    if (from < 0 || to < 0 || to >= ids.length) return;
+
+    [ids[from], ids[to]] = [ids[to], ids[from]];
+
+    const previous = state.sectionOrder;
+    state.sectionOrder = ids;
+    renderGroups(); // zmiana widoczna od razu
+
+    savingOrder = true;
+    try {
+        await api("/section-order", {
+            method: "PUT",
+            body: JSON.stringify({ order: ids.map(Number) }),
+        });
+    } catch (error) {
+        console.error("Nie udało się zapisać kolejności:", error);
+        state.sectionOrder = previous; // cofamy zmianę
+        renderGroups();
+        showToast(`Nie udało się zapisać kolejności: ${errorText(error)}`, "error");
+    } finally {
+        savingOrder = false;
+    }
+}
+
 function renderGroups() {
     const scrollY = window.scrollY;
-
     const groups = new Map();
 
-    [...state.sections]
-        .sort((a, b) => a.department.localeCompare(b.department, "pl"))
-        .forEach((section) => {
-            groups.set(section.department, { id: section.id, users: [] });
-        });
+    getOrderedSections().forEach((section) => {
+        groups.set(section.department, { id: section.id, users: [] });
+    });
 
     state.users.forEach((user) => {
         const department = user.section?.department || UNASSIGNED;
@@ -472,8 +532,18 @@ function renderGroups() {
         return;
     }
 
-    container.innerHTML = [...groups]
-        .map(([name, group]) => groupHTML(name, group))
+    const entries = [...groups];
+    const sectionEntries = entries.filter(([, g]) => g.id !== undefined);
+    const firstId = sectionEntries[0]?.[1].id;
+    const lastId = sectionEntries.at(-1)?.[1].id;
+
+    container.innerHTML = entries
+        .map(([name, group]) =>
+            groupHTML(name, group, {
+                isFirst: group.id !== undefined && group.id === firstId,
+                isLast: group.id !== undefined && group.id === lastId,
+            })
+        )
         .join("");
 
     applyFilters();
@@ -562,7 +632,7 @@ function clearAllFilters() {
     globalSearch.value = "";
     applyFilters();
     globalSearch.focus();
-}
+}   
 
 function initSearch() {
     globalSearch.addEventListener("input", applyFilters);
@@ -645,6 +715,9 @@ function initTableActions() {
         switch (button.dataset.action) {
             case "toggle-section":
                 toggleSection(button);
+                break;
+            case "move-section":
+                await moveSection(button);
                 break;
             case "edit-user":
                 openEditDialog(button.dataset.id);
