@@ -6,7 +6,7 @@ return [
     'allowed_methods' => ['*'],
 
     'allowed_origins' => [
-        'http://localhost:8080',
+        'http://10.10.1.5:8080',
     ],
 
     'allowed_origins_patterns' => [],

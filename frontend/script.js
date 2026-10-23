@@ -5,7 +5,7 @@
    (skrypt jest ładowany na końcu <body>, więc elementy już istnieją)
    ========================================================= */
 
-const API = "http://localhost:8000/api";
+const API = "http://10.10.1.5:8000/api";
 const UNASSIGNED = "Brak działu";
 
 // kolejność kolumn w tabeli (bez kolumny "Akcje")

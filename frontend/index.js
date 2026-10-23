@@ -4,7 +4,7 @@
    KONFIGURACJA
    ========================================================= */
 
-const API = "http://localhost:8000/api";
+const API = "http://10.10.1.5:8000/api";
 const UNASSIGNED = "Brak działu";
 
 const STORAGE = {
