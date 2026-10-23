@@ -359,6 +359,30 @@ async function refreshData({ selectSectionId = null } = {}) {
     }
 }
 
+// Pogrubia ostatnie 3 cyfry części numeru (przed dopiskiem fax/wew/itp.)
+// Dopisek i reszta tekstu zostają bez zmian
+function boldLastDigits(text) {
+    const value = String(text ?? "");
+
+    // pierwszy dopisek typu "fax", "FAX:", "wew.", "wew", "ext", "tel" (z granicą słowa)
+    const suffixMatch = value.match(/\s*(?:-\s*)?\b(?:fax|wew|wew\.|ext|tel)\b/i);
+
+    const splitAt = suffixMatch ? suffixMatch.index : value.length;
+    const numberPart = value.slice(0, splitAt);
+    const rest = value.slice(splitAt);
+
+    // ostatnie 3 cyfry części z numerem (ignorujemy spacje i kropki na końcu)
+    const match = numberPart.match(/^(.*?)(\d{3})(\D*)$/s);
+
+    if (!match) return escapeHtml(value);
+
+    const [, before, lastDigits, after] = match;
+    return (
+        `${escapeHtml(before)}<strong>${escapeHtml(lastDigits)}</strong>` +
+        `${escapeHtml(after)}${escapeHtml(rest)}`
+    );
+}
+
 function showLoadError(error) {
     container.innerHTML = `
         <div class="state-message">
@@ -380,7 +404,7 @@ function rowHTML(user) {
     const ip = user.details?.ip_number || "";
 
     const phoneCell = phone
-        ? `<a href="tel:${escapeHtml(phone.replace(/[^\d+]/g, ""))}">${escapeHtml(phone)}</a>`
+        ? `<a href="tel:${escapeHtml(phone.replace(/[^\d+]/g, ""))}">${boldLastDigits(phone)}</a>`
         : "";
     const emailCell = email
         ? email
