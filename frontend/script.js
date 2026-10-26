@@ -414,14 +414,14 @@ function rowHTML(user) {
             .join("<br>")
         : "";
 
-    // IP jako link do noVNC (pulpit w przeglądarce) + osobny link do AnyDesk (aplikacja lokalna)
+    // IP jako link do noVNC (pulpit w przeglądarce) + osobny link do RustDesk (aplikacja lokalna)
     // noVNC/websockify działa na porcie 6080 pod adresem hosta, na którym stoi panel (window.location.hostname)
-    // Adres IP staje się klikalnym linkiem uruchamiającym AnyDesk
+    // Adres IP staje się klikalnym linkiem uruchamiającym RustDesk
     let ipCell = "";
     if (ip) {
-        const anydeskUrl = `anydesk:${encodeURIComponent(ip)}`;
+        const rustdeskUrl = `rustdesk:${encodeURIComponent(ip)}`;
         ipCell = `
-            <a href="${escapeHtml(anydeskUrl)}" title="Połącz przez AnyDesk">${escapeHtml(ip)}</a>
+            <a href="${escapeHtml(rustdeskUrl)}" title="Połącz przez RustDesk">${escapeHtml(ip)}</a>
         `;
     }
 

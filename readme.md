@@ -1,6 +1,6 @@
 # TeleBook
 
-Panel administracyjny do zarządzania książką telefoniczną firmy: użytkownicy pogrupowani w działy, wyszukiwarka globalna, filtry kolumn, edycja, usuwanie, kontrola duplikatów oraz szybkie łączenie ze stanowiskiem przez AnyDesk (kliknięcie w adres IP).
+Panel administracyjny do zarządzania książką telefoniczną firmy: użytkownicy pogrupowani w działy, wyszukiwarka globalna, filtry kolumn, edycja, usuwanie, kontrola duplikatów oraz szybkie łączenie ze stanowiskiem przez RustDesk (kliknięcie w adres IP).
 
 - **Backend:** Laravel (REST API pod `/api`) + PostgreSQL
 - **Frontend:** statyczne pliki HTML / CSS / vanilla JS, bez frameworka
@@ -490,7 +490,7 @@ W komórkach:
 
 - telefon jest linkiem `tel:`,
 - e-mail jest linkiem `mailto:` (kilka adresów rozdzielonych spacją wyświetla się w osobnych liniach),
-- **IP jest linkiem `anydesk:IP`** – kliknięcie uruchamia lokalną aplikację AnyDesk i łączy się z danym komputerem (wymaga zainstalowanego AnyDesk na komputerze osoby, która klika).
+- **IP jest linkiem `rustDesk:IP`** – kliknięcie uruchamia lokalną aplikację RustDesk i łączy się z danym komputerem (wymaga zainstalowanego rustDesk na komputerze osoby, która klika).
 
 ### 9.4. Wyszukiwanie i filtrowanie
 
@@ -553,7 +553,7 @@ Pole IP w formularzach ma wzorzec (`pattern`) wymuszający poprawny adres IPv4.
 6. **Czyszczenie** – przycisk „Wyczyść” resetuje wszystko.
 7. **Edycja / usuwanie** – przyciski **Edit** i **Delete** w kolumnie „Akcje”. Usuwanie wymaga potwierdzenia.
 8. **Usuwanie działu** – możliwe tylko wtedy, gdy dział jest pusty (przycisk „Usuń dział”).
-9. **Łączenie z komputerem** – kliknij adres IP w tabeli; uruchomi się AnyDesk (musi być zainstalowany lokalnie).
+9. **Łączenie z komputerem** – kliknij adres IP w tabeli; uruchomi się RustDesk (musi być zainstalowany lokalnie + hasło u każdego użytkownika powinno być takie same).
 10. **Tryb ciemny i panele** – przełączniki w nagłówku.
 
 ---
@@ -572,4 +572,4 @@ Pole IP w formularzach ma wzorzec (`pattern`) wymuszający poprawny adres IPv4.
 | Panel w kółko wraca do logowania | cookie sesji nie dochodzi: sprawdź, czy frontend i API są pod tą samą domeną, `SESSION_DOMAIN`, `SESSION_SECURE_COOKIE` (HTTPS) i CORS (`supports_credentials`) |
 | „brak połączenia z serwerem” w panelu | zły adres w `const API` w `script.js` albo API nie działa |
 | Zmiany w `.env` nie działają | `php artisan config:clear` lub ponownie `config:cache` |
-| Link IP nic nie robi | AnyDesk nie jest zainstalowany na komputerze klikającego albo przeglądarka blokuje protokół `anydesk:` |
+| Link IP nic nie robi | RustDesk nie jest zainstalowany na komputerze klikającego albo przeglądarka blokuje protokół `rustdesk:` |
