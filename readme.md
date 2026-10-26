@@ -17,7 +17,7 @@ Panel administracyjny do zarządzania książką telefoniczną firmy: użytkowni
 4. [Konfiguracja Laravela (`.env`)](#4-konfiguracja-laravela-env)
 5. [Instalacja pakietów i migracje](#5-instalacja-pakietów-i-migracje)
 6. [Uruchomienie lokalne](#6-uruchomienie-lokalne)
-7. [Wdrożenie na serwer (Ubuntu + Nginx + PHP-FPM)](#7-wdrożenie-na-serwer-ubuntu--nginx--php-fpm)
+7. [Wdrożenie na serwer (Debian + Nginx + PHP-FPM)](#7-wdrożenie-na-serwer-debian--nginx--php-fpm)
 8. [Aktualizacja aplikacji na serwerze](#8-aktualizacja-aplikacji-na-serwerze)
 9. [Jak działa frontend (`script.js`)](#9-jak-działa-frontend-scriptjs)
 10. [Instrukcja obsługi panelu](#10-instrukcja-obsługi-panelu)
@@ -312,18 +312,17 @@ Przy pracy lokalnej zostaw go tak, jak jest. Przy wdrożeniu zmień go (sekcja 7
 
 ---
 
-## 7. Wdrożenie na serwer (Ubuntu + Nginx + PHP-FPM)
+## 7. Wdrożenie na serwer (Debian + Nginx + PHP-FPM)
 
 Układ docelowy: jedna domena, Nginx serwuje pliki statyczne frontendu pod `/`, a wszystko pod `/api` przekazuje do Laravela. Dzięki temu cookie sesji działają bez dodatkowej konfiguracji CORS.
 
 ### 7.1. Pobranie kodu na serwer
 
 ```bash
-sudo mkdir -p /var/www
-cd /var/www
 sudo git clone https://github.com/telebook-dev/telebook.git
-sudo chown -R $USER:www-data /var/www/telebook
-cd /var/www/telebook
+sudo chown -R $USER:www-data /home/cepelek/telebook
+chmod o+x /home/cepelekd
+cd telebook
 ```
 
 ### 7.2. Pakiety, `.env`, migracje
@@ -355,11 +354,11 @@ W `script.js` zmień adres API na względny (ta sama domena):
 const API = "/api";
 ```
 
-Pliki frontendu (`index.html`, `admin-login.html`, `style.css`, `admin.js`, `script.js`) muszą leżeć w katalogu serwowanym przez Nginx pod `/` (w przykładzie niżej: `/var/www/telebook-frontend`).
+Pliki frontendu (`index.html`, `admin-login.html`, `style.css`, `admin.js`, `script.js`) muszą leżeć w katalogu serwowanym przez Nginx pod `/` (w przykładzie niżej: `telebook/frontend`).
 
 ```bash
-sudo mkdir -p /var/www/telebook-frontend
-sudo cp index.html admin-login.html style.css admin.js script.js /var/www/telebook-frontend/
+sudo mkdir -p telebook/frontend
+sudo cp index.html admin-login.html style.css admin.js script.js telebook/frontend
 ```
 
 > Dostosuj listę plików do tego, co faktycznie leży w repozytorium (np. jeśli frontend ma własny podkatalog).
@@ -370,38 +369,36 @@ sudo cp index.html admin-login.html style.css admin.js script.js /var/www/telebo
 
 ```nginx
 server {
-    listen 80;
-    server_name telebook.twojafirma.pl;
-
-    # --- frontend (pliki statyczne) ---
-    root /var/www/telebook-frontend;
+    listen 8080;
+    server_name _;
+    root /home/cepelek/telebook/frontend;
     index index.html;
 
     location / {
-        try_files $uri $uri/ =404;
+        try_files $uri $uri/ /index.html;
+    }
+}
+
+server {
+    listen 8000;
+    server_name _;
+    root /home/cepelek/telebook/backend/public;
+    index index.php;
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
     }
 
-    # --- API Laravel ---
-    location /api {
-        root /var/www/telebook/public;
-        try_files $uri /index.php?$query_string;
-    }
-
-    # skrypt wejściowy Laravela (dostosuj wersję PHP-FPM)
-    location = /index.php {
-        root /var/www/telebook/public;
+    location ~ \.php$ {
         include snippets/fastcgi-php.conf;
-        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
-        fastcgi_param SCRIPT_FILENAME /var/www/telebook/public/index.php;
+        fastcgi_pass unix:/run/php/php8.4-fpm.sock;
     }
-
-    # Laravel potrzebuje też tras sesji/CSRF, jeśli używasz Sanctum:
-    # location /sanctum { ... }  (analogicznie do /api)
 
     location ~ /\.(?!well-known).* {
         deny all;
     }
 }
+
 ```
 
 Włączenie konfiguracji:
