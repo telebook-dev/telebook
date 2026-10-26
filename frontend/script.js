@@ -27,6 +27,7 @@ const ACTIONS_WIDTH = 9;
 const STORAGE = {
     theme: "telebook-theme",
     panels: "telebook-panels-visible",
+    collapsed: "telebook-collapsed",
 };
 
 const $ = (id) => document.getElementById(id);
@@ -39,6 +40,7 @@ const searchInfo = $("search-info");
 const state = {
     users: [],
     sections: [],
+    subsections: [],
     sectionOrder: [],
     loaded: false,
 };
@@ -107,6 +109,8 @@ function errorText(error) {
         : error.message;
 }
 
+const userSubId = (user) => user.subsection_id ?? user.subsection?.id ?? null;
+
 /* =========================================================
    KOMUNIKACJA Z API
    ========================================================= */
@@ -172,7 +176,6 @@ const confirmDialog = (() => {
     const dialog = $("confirm-dialog");
     const okButton = $("confirm-ok");
 
-    // kliknięcie w tło zamyka okno (padding jest na <form>, więc target === dialog to tylko tło)
     dialog.addEventListener("click", (event) => {
         if (event.target === dialog) dialog.close("cancel");
     });
@@ -223,7 +226,6 @@ function saveTheme(theme) {
 
 function applyTheme(dark, animate) {
     if (animate && !reduceMotion.matches) {
-        // klasa włącza płynne przejście kolorów tylko na czas przełączenia
         root.classList.add("theme-switching");
         clearTimeout(themeSwitchTimer);
         themeSwitchTimer = setTimeout(
@@ -244,7 +246,6 @@ function initTheme() {
         saveTheme(themeToggle.checked ? "dark" : "light");
     });
 
-    // dopóki użytkownik sam nie wybrał motywu, podążamy za ustawieniem systemu
     darkQuery.addEventListener("change", (event) => {
         if (!readSavedTheme()) applyTheme(event.matches, true);
     });
@@ -274,32 +275,47 @@ function initPanelToggles() {
 }
 
 /* =========================================================
-   LISTA DZIAŁÓW W FORMULARZU
+   LISTY DZIAŁÓW I PODSEKCJI W FORMULARZACH
    ========================================================= */
 
-function populateSectionSelect(selectId = null) {
-    const select = $("add-section-id");
-    const previous = selectId ?? select.value;
-
+function fillSectionOptions(select, placeholder, selected = "") {
     select.innerHTML = "";
 
-    const placeholder = document.createElement("option");
-    placeholder.value = "";
-    placeholder.disabled = true;
-    placeholder.selected = true;
-    placeholder.textContent = "Wybierz dział...";
-    select.appendChild(placeholder);
+    const ph = new Option(placeholder, "", true, true);
+    ph.disabled = true;
+    select.appendChild(ph);
 
     [...state.sections]
         .sort((a, b) => a.department.localeCompare(b.department, "pl"))
-        .forEach((section) => {
-            const option = document.createElement("option");
-            option.value = section.id;
-            option.textContent = section.department;
-            select.appendChild(option);
-        });
+        .forEach((section) => select.appendChild(new Option(section.department, section.id)));
 
-    if (previous) select.value = previous;
+    if (selected) select.value = String(selected);
+}
+
+function fillSubsectionOptions(select, sectionId, selected = "") {
+    select.innerHTML = "";
+    select.appendChild(new Option("Brak podsekcji", ""));
+
+    state.subsections
+        .filter((sub) => String(sub.section_id) === String(sectionId))
+        .sort((a, b) => a.name.localeCompare(b.name, "pl"))
+        .forEach((sub) => select.appendChild(new Option(sub.name, sub.id)));
+
+    select.value = selected ? String(selected) : "";
+}
+
+function populateSectionSelect(selectId = null) {
+    const select = $("add-section-id");
+    const subSectionSelect = $("add-subsection-section-id");
+    const subSelect = $("add-subsection-id");
+
+    const previous = selectId ?? select.value;
+    const previousSubForm = selectId ?? subSectionSelect.value;
+    const previousSub = subSelect.value;
+
+    fillSectionOptions(select, "Wybierz dział...", previous);
+    fillSectionOptions(subSectionSelect, "Wybierz dział...", previousSubForm);
+    fillSubsectionOptions(subSelect, select.value, previousSub);
 }
 
 function getOrderedSections() {
@@ -327,14 +343,15 @@ const collapsedSections = new Set(
 
 let refreshToken = 0;
 
-// jedno odświeżenie = jeden komplet zapytań (użytkownicy + działy równolegle)
+// jedno odświeżenie = jeden komplet zapytań (równolegle)
 async function refreshData({ selectSectionId = null } = {}) {
     const token = ++refreshToken;
 
     try {
-        const [users, sections, order] = await Promise.all([
+        const [users, sections, subsections, order] = await Promise.all([
             api("/userdata"),
             api("/sections"),
+            api("/subsections").catch(() => []),
             api("/section-order").catch(() => []),
         ]);
 
@@ -342,6 +359,7 @@ async function refreshData({ selectSectionId = null } = {}) {
 
         state.users = unwrap(users);
         state.sections = unwrap(sections);
+        state.subsections = unwrap(subsections);
         state.sectionOrder = Array.isArray(order) ? order : unwrap(order);
         state.loaded = true;
 
@@ -360,18 +378,15 @@ async function refreshData({ selectSectionId = null } = {}) {
 }
 
 // Pogrubia ostatnie 3 cyfry części numeru (przed dopiskiem fax/wew/itp.)
-// Dopisek i reszta tekstu zostają bez zmian
 function boldLastDigits(text) {
     const value = String(text ?? "");
 
-    // pierwszy dopisek typu "fax", "FAX:", "wew.", "wew", "ext", "tel" (z granicą słowa)
     const suffixMatch = value.match(/\s*(?:-\s*)?\b(?:fax|wew|wew\.|ext|tel)\b/i);
 
     const splitAt = suffixMatch ? suffixMatch.index : value.length;
     const numberPart = value.slice(0, splitAt);
     const rest = value.slice(splitAt);
 
-    // ostatnie 3 cyfry części z numerem (ignorujemy spacje i kropki na końcu)
     const match = numberPart.match(/^(.*?)(\d{3})(\D*)$/s);
 
     if (!match) return escapeHtml(value);
@@ -393,7 +408,7 @@ function showLoadError(error) {
     searchInfo.textContent = "Brak danych";
 }
 
-function rowHTML(user) {
+function rowHTML(user, subName = "") {
     const id = user.id ?? "";
     const phone = user.phone_number || "";
     const room = user.details?.room_number || "";
@@ -410,23 +425,19 @@ function rowHTML(user) {
         ? email
             .split(/\s+/)
             .filter(Boolean)
-            .map(e => `<a href="mailto:${escapeHtml(encodeURI(e))}">${escapeHtml(e)}</a>`)
+            .map((e) => `<a href="mailto:${escapeHtml(encodeURI(e))}">${escapeHtml(e)}</a>`)
             .join("<br>")
         : "";
 
-    // IP jako link do noVNC (pulpit w przeglądarce) + osobny link do RustDesk (aplikacja lokalna)
-    // noVNC/websockify działa na porcie 6080 pod adresem hosta, na którym stoi panel (window.location.hostname)
-    // Adres IP staje się klikalnym linkiem uruchamiającym RustDesk
+    // adres IP jako klikalny link uruchamiający AnyDesk
     let ipCell = "";
     if (ip) {
-        const rustdeskUrl = `rustdesk:${encodeURIComponent(ip)}`;
-        ipCell = `
-            <a href="${escapeHtml(rustdeskUrl)}" title="Połącz przez RustDesk">${escapeHtml(ip)}</a>
-        `;
+        const anydeskUrl = `anydesk:${encodeURIComponent(ip)}`;
+        ipCell = `<a href="${escapeHtml(anydeskUrl)}" title="Połącz przez AnyDesk">${escapeHtml(ip)}</a>`;
     }
 
     return `
-        <tr>
+        <tr class="user-row" data-sub="${escapeHtml(subName)}">
             <td>${escapeHtml(id)}</td>
             <td>${phoneCell}</td>
             <td>${escapeHtml(room)}</td>
@@ -437,8 +448,8 @@ function rowHTML(user) {
             <td>${ipCell}</td>
             <td class="actions">
                 <button type="button" class="edit-button"
-        data-action="edit-user"
-        data-id="${escapeHtml(id)}">Edit</button>
+                        data-action="edit-user"
+                        data-id="${escapeHtml(id)}">Edit</button>
                 <button type="button" class="delete-button"
                         data-action="delete-user"
                         data-id="${escapeHtml(id)}"
@@ -448,9 +459,39 @@ function rowHTML(user) {
     `;
 }
 
-function groupHTML(name, { id, users }, position = {}) {
+function subsectionRowHTML(sub, count) {
+    return `
+        <tr class="subsection-row">
+            <td colspan="${COLUMNS.length + 1}">
+                ${escapeHtml(sub.name)}
+                ${count === 0 ? `
+                    <button type="button" class="delete-subsection-button" data-action="delete-subsection"
+                            data-subsection-id="${escapeHtml(sub.id)}"
+                            data-subsection-name="${escapeHtml(sub.name)}">Usuń podsekcję</button>` : ""}
+            </td>
+        </tr>
+    `;
+}
+
+function bodyRowsHTML(users, subsections) {
+    const known = new Set(subsections.map((s) => String(s.id)));
+    const isInSub = (u) => userSubId(u) !== null && known.has(String(userSubId(u)));
+
+    // najpierw użytkownicy bez podsekcji, potem kolejne podsekcje
+    let html = users.filter((u) => !isInSub(u)).map((u) => rowHTML(u)).join("");
+
+    subsections.forEach((sub) => {
+        const members = users.filter((u) => String(userSubId(u)) === String(sub.id));
+        html += subsectionRowHTML(sub, members.length);
+        html += members.map((u) => rowHTML(u, sub.name)).join("");
+    });
+
+    return html;
+}
+
+function groupHTML(name, { id, users, subsections = [] }, position = {}) {
     const safeName = escapeHtml(name);
-    const canDelete = users.length === 0 && id !== undefined;
+    const canDelete = users.length === 0 && subsections.length === 0 && id !== undefined;
     const canMove = id !== undefined;
 
     const colgroup =
@@ -490,7 +531,7 @@ function groupHTML(name, { id, users }, position = {}) {
                         <tr>${headCells}<th>Akcje</th></tr>
                     </thead>
                     <tbody>
-                        ${users.map(rowHTML).join("")}
+                        ${bodyRowsHTML(users, subsections)}
                         <tr class="empty-row" hidden><td colspan="${COLUMNS.length + 1}"></td></tr>
                     </tbody>
                 </table>
@@ -539,13 +580,19 @@ function renderGroups() {
     const groups = new Map();
 
     getOrderedSections().forEach((section) => {
-        groups.set(section.department, { id: section.id, users: [] });
+        groups.set(section.department, {
+            id: section.id,
+            users: [],
+            subsections: state.subsections
+                .filter((sub) => String(sub.section_id) === String(section.id))
+                .sort((a, b) => a.name.localeCompare(b.name, "pl")),
+        });
     });
 
     state.users.forEach((user) => {
         const department = user.section?.department || UNASSIGNED;
         if (!groups.has(department)) {
-            groups.set(department, { id: undefined, users: [] });
+            groups.set(department, { id: undefined, users: [], subsections: [] });
         }
         groups.get(department).users.push(user);
     });
@@ -576,7 +623,6 @@ function renderGroups() {
 
 /* =========================================================
    WYSZUKIWANIE I FILTRY
-   (nasłuchiwanie ustawiane RAZ; grupy są wyszukiwane przy każdym filtrowaniu)
    ========================================================= */
 
 // znormalizowany tekst komórek wiersza liczymy raz i zapamiętujemy na elemencie
@@ -589,24 +635,43 @@ function rowCells(row) {
     return row._cells;
 }
 
-function rowMatches(cells, department, words) {
-    const rowText = `${cells.join(" ")} ${department}`;
+function rowMatches(cells, scope, words) {
+    const rowText = `${cells.join(" ")} ${scope}`;
     return words.every((word) => rowText.includes(word));
 }
 
 function filterGroup(group, words) {
     const table = group.querySelector(".table-data");
     const department = normalize(group.dataset.dept);
-    const rows = [...table.querySelectorAll("tbody tr:not(.empty-row)")];
+    const rows = [...table.querySelectorAll("tbody tr.user-row")];
 
     let visible = 0;
 
     rows.forEach((row) => {
-        const match = rowMatches(rowCells(row), department, words);
+        const scope = `${department} ${normalize(row.dataset.sub)}`;
+        const match = rowMatches(rowCells(row), scope, words);
         row.hidden = !match;
         row.classList.toggle("search-match", match && words.length > 0);
         if (match) visible++;
     });
+
+    // nagłówki podsekcji: zawsze widoczne, a przy wyszukiwaniu tylko gdy mają wyniki
+    let currentHeader = null;
+    let currentVisible = 0;
+    const flush = () => {
+        if (currentHeader) currentHeader.hidden = words.length > 0 && currentVisible === 0;
+    };
+
+    table.querySelectorAll("tbody tr.user-row, tbody tr.subsection-row").forEach((row) => {
+        if (row.classList.contains("subsection-row")) {
+            flush();
+            currentHeader = row;
+            currentVisible = 0;
+        } else if (!row.hidden) {
+            currentVisible++;
+        }
+    });
+    flush();
 
     const emptyRow = table.querySelector(".empty-row");
     emptyRow.hidden = visible !== 0;
@@ -620,7 +685,6 @@ function filterGroup(group, words) {
 
     return visible;
 }
-
 
 function updateInfo(words, total, groupsCount) {
     if (state.users.length === 0) {
@@ -656,7 +720,7 @@ function clearAllFilters() {
     globalSearch.value = "";
     applyFilters();
     globalSearch.focus();
-}   
+}
 
 function initSearch() {
     globalSearch.addEventListener("input", applyFilters);
@@ -731,6 +795,30 @@ async function deleteSection(button) {
     }
 }
 
+async function deleteSubsection(button) {
+    const { subsectionId, subsectionName } = button.dataset;
+    if (!subsectionId) return;
+
+    const confirmed = await confirmDialog({
+        title: "Usunąć podsekcję?",
+        message: `Podsekcja „${subsectionName}” zostanie trwale usunięta.`,
+        confirmLabel: "Usuń podsekcję",
+    });
+    if (!confirmed) return;
+
+    button.disabled = true;
+
+    try {
+        await api(`/subsections/${encodeURIComponent(subsectionId)}`, { method: "DELETE" });
+        await refreshData();
+        showToast(`Usunięto podsekcję „${subsectionName}”.`);
+    } catch (error) {
+        console.error("Błąd usuwania podsekcji:", error);
+        button.disabled = false;
+        showToast(`Nie udało się usunąć podsekcji: ${errorText(error)}`, "error");
+    }
+}
+
 function initTableActions() {
     container.addEventListener("click", async (event) => {
         const button = event.target.closest("button[data-action]");
@@ -752,6 +840,9 @@ function initTableActions() {
             case "delete-section":
                 await deleteSection(button);
                 break;
+            case "delete-subsection":
+                await deleteSubsection(button);
+                break;
             case "retry":
                 container.innerHTML = `<div class="state-message">Ładowanie danych…</div>`;
                 await refreshData();
@@ -769,7 +860,7 @@ function findDuplicates(newUser, ignoreId = null) {
     const messages = [];
 
     const email = newUser.email.toLowerCase();
-    const sameEmail = others.find((user) => (user.email || "").toLowerCase() === email);
+    const sameEmail = email && others.find((user) => (user.email || "").toLowerCase() === email);
     if (sameEmail) {
         messages.push(`Adres ${newUser.email} jest już przypisany do: ${fullName(sameEmail)}.`);
     }
@@ -795,6 +886,10 @@ function initUserForm() {
     const form = $("add-user-form");
     const phoneInput = $("add-phone");
 
+    // zmiana działu odświeża listę podsekcji
+    $("add-section-id").addEventListener("change", () => {
+        fillSubsectionOptions($("add-subsection-id"), $("add-section-id").value);
+    });
 
     form.addEventListener("submit", async (event) => {
         event.preventDefault();
@@ -804,6 +899,9 @@ function initUserForm() {
 
         const newUser = {
             section_id: parseInt($("add-section-id").value, 10),
+            subsection_id: $("add-subsection-id").value
+                ? parseInt($("add-subsection-id").value, 10)
+                : null,
             designation: value("add-designation"),
             name: value("add-name"),
             last_name: value("add-last-name"),
@@ -832,10 +930,12 @@ function initUserForm() {
                 body: JSON.stringify(newUser),
             });
 
-            // szybkie dodawanie kolejnych osób: dział zostaje wybrany, kursor wraca na początek
+            // szybkie dodawanie kolejnych osób: dział i podsekcja zostają wybrane
             const sectionValue = $("add-section-id").value;
+            const subsectionValue = $("add-subsection-id").value;
             form.reset();
             $("add-section-id").value = sectionValue;
+            fillSubsectionOptions($("add-subsection-id"), sectionValue, subsectionValue);
 
             await refreshData();
             showToast(`Dodano użytkownika: ${fullName(newUser)}`);
@@ -879,11 +979,56 @@ function initSectionForm() {
             const newId = created?.id ?? created?.data?.id ?? null;
 
             nameInput.value = "";
-            await refreshData({ selectSectionId: newId }); // nowy dział od razu zaznaczony na liście
+            await refreshData({ selectSectionId: newId });
             showToast(`Dodano dział „${department}”.`);
         } catch (error) {
             console.error("Błąd podczas dodawania działu:", error);
             showToast(`Nie udało się dodać działu: ${errorText(error)}`, "error");
+        } finally {
+            submitButton.disabled = false;
+        }
+    });
+}
+
+function initSubsectionForm() {
+    const form = $("add-subsection-form");
+    const sectionSelect = $("add-subsection-section-id");
+    const nameInput = $("add-subsection-name");
+
+    form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        const name = nameInput.value.trim();
+        const sectionId = parseInt(sectionSelect.value, 10);
+        if (!name || !sectionId) return;
+
+        const exists = state.subsections.some(
+            (sub) =>
+                Number(sub.section_id) === sectionId &&
+                sub.name.toLowerCase() === name.toLowerCase()
+        );
+        if (exists) {
+            showToast(`Podsekcja „${name}” już istnieje w tym dziale.`, "error");
+            nameInput.focus();
+            return;
+        }
+
+        const submitButton = form.querySelector("button[type='submit']");
+        submitButton.disabled = true;
+
+        try {
+            await api("/subsections", {
+                method: "POST",
+                body: JSON.stringify({ section_id: sectionId, name }),
+            });
+
+            nameInput.value = "";
+            await refreshData();
+            showToast(`Dodano podsekcję „${name}”.`);
+            nameInput.focus();
+        } catch (error) {
+            console.error("Błąd podczas dodawania podsekcji:", error);
+            showToast(`Nie udało się dodać podsekcji: ${errorText(error)}`, "error");
         } finally {
             submitButton.disabled = false;
         }
@@ -906,18 +1051,9 @@ function openEditDialog(id) {
     editingId = user.id;
     $("edit-id-label").textContent = `(ID: ${user.id})`;
 
-    // lista działów
-    const select = $("edit-section-id");
-    select.innerHTML = '<option value="" disabled>Wybierz dział...</option>';
-    [...state.sections]
-        .sort((a, b) => a.department.localeCompare(b.department, "pl"))
-        .forEach((section) => {
-            const option = document.createElement("option");
-            option.value = section.id;
-            option.textContent = section.department;
-            select.appendChild(option);
-        });
-    select.value = user.section?.id ?? user.section_id ?? "";
+    const sectionId = user.section?.id ?? user.section_id ?? "";
+    fillSectionOptions($("edit-section-id"), "Wybierz dział...", sectionId);
+    fillSubsectionOptions($("edit-subsection-id"), sectionId, userSubId(user));
 
     $("edit-phone").value = user.phone_number || "";
     $("edit-room").value = user.details?.room_number || "";
@@ -934,9 +1070,13 @@ function initEditForm() {
     const dialog = $("edit-dialog");
     const form = $("edit-user-form");
     const saveButton = $("edit-save");
-    const phoneInput = $("edit-phone");
 
     $("edit-cancel").addEventListener("click", () => dialog.close());
+
+    // zmiana działu odświeża listę podsekcji
+    $("edit-section-id").addEventListener("change", () => {
+        fillSubsectionOptions($("edit-subsection-id"), $("edit-section-id").value);
+    });
 
     // kliknięcie w tło zamyka okno
     dialog.addEventListener("click", (event) => {
@@ -950,6 +1090,9 @@ function initEditForm() {
         const value = (id) => $(id).value.trim();
         const payload = {
             section_id: parseInt($("edit-section-id").value, 10),
+            subsection_id: $("edit-subsection-id").value
+                ? parseInt($("edit-subsection-id").value, 10)
+                : null,
             designation: value("edit-designation"),
             name: value("edit-name"),
             last_name: value("edit-last-name"),
@@ -1001,5 +1144,6 @@ initSearch();
 initTableActions();
 initUserForm();
 initSectionForm();
+initSubsectionForm();
 initEditForm();
 refreshData();

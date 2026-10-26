@@ -17,7 +17,6 @@ const STORAGE = {
 
 const $ = (id) => document.getElementById(id);
 
-// Zabezpieczenie przed XSS
 function escapeHtml(value) {
     return String(value ?? "").replace(/[&<>"']/g, (char) => ({
         "&": "&amp;",
@@ -28,18 +27,20 @@ function escapeHtml(value) {
     }[char]));
 }
 
-/* =========================================================
-   KOLUMNY - JEDNO MIEJSCE DEFINICJI
-   Aby usunąć / dodać / przestawić kolumnę, edytuj tylko tę tablicę.
-   key    - klasa CSS (col-<key>), np. .col-phone
-   label  - nagłówek, placeholder filtra i etykieta kart na telefonie
-   value  - skąd brać wartość z obiektu użytkownika
-   render - (opcjonalnie) własny HTML komórki, dostaje już tekst
-   exact  - (opcjonalnie) filtr kolumny wymaga dokładnego dopasowania
-   ========================================================= */
+function boldLastDigits(text) {
+    const digits = text.replace(/\D/g, "");
+    if (!/^(0048|48)?4291/.test(digits)) return escapeHtml(text);
+
+    const match = text.match(/^(.*?)(\d[\s-]?\d[\s-]?\d)$/);
+    if (!match) return escapeHtml(text);
+
+    return `${escapeHtml(match[1])}<b>${escapeHtml(match[2])}</b>`;
+}
 
 const telLink = (v) =>
-    v ? `<a href="tel:${escapeHtml(v.replace(/[^\d+]/g, ""))}">${escapeHtml(v)}</a>` : "";
+    v
+        ? `<a href="tel:${escapeHtml(v.replace(/[^\d+]/g, ""))}">${boldLastDigits(v)}</a>`
+        : "";
 
 const mailLink = (v) =>
     v
@@ -71,28 +72,11 @@ const searchInfo = $("search-info");
 const state = {
     users: [],
     sections: [],
+    subsections: [],
+    sectionOrder: [],
     loaded: false,
 };
 
-const storage = {
-    get(key, fallback) {
-        try {
-            const raw = localStorage.getItem(key);
-            return raw === null ? fallback : JSON.parse(raw);
-        } catch {
-            return fallback;
-        }
-    },
-    set(key, value) {
-        try {
-            localStorage.setItem(key, JSON.stringify(value));
-        } catch {
-            /* tryb prywatny / brak miejsca - pomijamy */
-        }
-    },
-};
-
-// Normalizowanie tekstu do wyszukiwania (małe litery, bez ogonków)
 function normalize(text) {
     return String(text ?? "")
         .toLowerCase()
@@ -106,7 +90,6 @@ function splitWords(text) {
     return text.split(/\s+/).filter(Boolean);
 }
 
-// API zwraca albo tablicę, albo { data: [...] }
 function unwrap(json) {
     if (Array.isArray(json)) return json;
     if (Array.isArray(json?.data)) return json.data;
@@ -119,6 +102,8 @@ function errorText(error) {
         : error.message;
 }
 
+const userSubId = (user) => user.subsection_id ?? user.subsection?.id ?? null;
+
 /* =========================================================
    KOMUNIKACJA Z API
    ========================================================= */
@@ -126,7 +111,7 @@ function errorText(error) {
 async function api(path, options = {}) {
     const response = await fetch(`${API}${path}`, {
         ...options,
-        credentials: "include", // wysyła ciasteczko sesyjne do backendu
+        credentials: "include",
         headers: {
             Accept: "application/json",
             ...options.headers,
@@ -162,9 +147,7 @@ function readSavedTheme() {
 function saveTheme(theme) {
     try {
         localStorage.setItem(STORAGE.theme, theme);
-    } catch {
-        /* pomijamy */
-    }
+    } catch {}
 }
 
 function applyTheme(dark, animate) {
@@ -197,7 +180,7 @@ function initTheme() {
 }
 
 /* =========================================================
-   POBIERANIE DANYCH I RENDEROWANIE
+   POBIERANIE DANYCH I RENDEROWANIE Z PODSEKCJAMI
    ========================================================= */
 
 let refreshToken = 0;
@@ -206,15 +189,19 @@ async function refreshData() {
     const token = ++refreshToken;
 
     try {
-        const [users, sections] = await Promise.all([
+        const [users, sections, subsections, order] = await Promise.all([
             api("/userdata"),
             api("/sections"),
+            api("/subsections").catch(() => []),
+            api("/section-order").catch(() => []),
         ]);
 
         if (token !== refreshToken) return;
 
         state.users = unwrap(users);
         state.sections = unwrap(sections);
+        state.subsections = unwrap(subsections);
+        state.sectionOrder = Array.isArray(order) ? order : unwrap(order);
         state.loaded = true;
 
         renderGroups();
@@ -246,82 +233,86 @@ function rowHTML(user) {
     return `<tr>${cells}</tr>`;
 }
 
-function groupHTML(name, { users }) {
-    const safeName = escapeHtml(name);
-
-    const headCells = COLUMNS.map(
-        (col) => `<th class="col-${col.key}">${escapeHtml(col.label)}</th>`
-    ).join("");
-
-    const filterCells = COLUMNS.map(
-        (col) => `
-            <th class="col-${col.key}">
-                <input type="text" class="filter-input" placeholder="${escapeHtml(col.label)}"
-                       aria-label="Filtruj: ${escapeHtml(col.label)}" autocomplete="off">
-            </th>`
-    ).join("");
-
+function renderTableContainer(users, headCells) {
     return `
-        <div class="table-group" data-dept="${safeName}">
-            <div class="table-header">
-                <div class="table-title">
-                    <h2 class="table-name">${safeName}</h2>
-                </div>
-            </div>
-
-            <div class="table-container">
-                <table class="table-data">
-                    <thead>
-                        <tr>${headCells}</tr>
-                        <tr class="filter-row">${filterCells}</tr>
-                    </thead>
-                    <tbody>
-                        ${users.map(rowHTML).join("")}
-                        <tr class="empty-row" hidden><td colspan="${COLUMNS.length}"></td></tr>
-                    </tbody>
-                </table>
-            </div>
+        <div class="table-container">
+            <table class="table-data">
+                <thead>
+                    <tr>${headCells}</tr>
+                </thead>
+                <tbody>
+                    ${users.map(rowHTML).join("")}
+                    <tr class="empty-row" hidden><td colspan="${COLUMNS.length}"></td></tr>
+                </tbody>
+            </table>
         </div>
     `;
 }
 
-function captureFilters() {
-    const saved = new Map();
-    container.querySelectorAll(".table-group").forEach((group) => {
-        saved.set(
-            group.dataset.dept,
-            [...group.querySelectorAll(".filter-input")].map((input) => input.value)
-        );
-    });
-    return saved;
-}
+function departmentHTML(deptName, deptData) {
+    const safeDeptName = escapeHtml(deptName);
+    const headCells = COLUMNS.map(
+        (col) => `<th class="col-${col.key}">${escapeHtml(col.label)}</th>`
+    ).join("");
 
-function restoreFilters(saved) {
-    container.querySelectorAll(".table-group").forEach((group) => {
-        const values = saved.get(group.dataset.dept);
-        if (!values) return;
-        group.querySelectorAll(".filter-input").forEach((input, index) => {
-            input.value = values[index] ?? "";
-        });
+    let html = `
+        <div class="table-group" data-dept="${safeDeptName}">
+            <div class="table-header">
+                <div class="table-title">
+                    <h2 class="table-name">${safeDeptName}</h2>
+                </div>
+            </div>
+    `;
+
+    const knownSubIds = new Set(deptData.subsections.map((s) => String(s.id)));
+    const isInSub = (u) => userSubId(u) !== null && knownSubIds.has(String(userSubId(u)));
+
+    // Użytkownicy bezpośrednio w dziale (bez podsekcji)
+    const directUsers = deptData.users.filter((u) => !isInSub(u));
+    if (directUsers.length > 0) {
+        html += renderTableContainer(directUsers, headCells);
+    }
+
+    // Podsekcje i ich użytkownicy
+    deptData.subsections.forEach((sub) => {
+        const subUsers = deptData.users.filter((u) => String(userSubId(u)) === String(sub.id));
+        const safeSubName = escapeHtml(sub.name);
+        
+        html += `
+            <div class="subsection-wrapper">
+                <h3 class="subsection-name">${safeSubName}</h3>
+                ${renderTableContainer(subUsers, headCells)}
+            </div>
+        `;
     });
+
+    html += `</div>`;
+    return html;
 }
 
 function renderGroups() {
-    const savedFilters = captureFilters();
     const scrollY = window.scrollY;
-
     const groups = new Map();
 
-    [...state.sections]
-        .sort((a, b) => a.department.localeCompare(b.department, "pl"))
-        .forEach((section) => {
-            groups.set(section.department, { users: [] });
-        });
+    // 1. Działy w kolejności ustawionej w section-order
+    getOrderedSections().forEach((section) => {
+        const dept = section.department || UNASSIGNED;
+        if (!groups.has(dept)) {
+            groups.set(dept, {
+                id: section.id,
+                subsections: state.subsections
+                    .filter((sub) => String(sub.section_id) === String(section.id))
+                    .sort((a, b) => a.name.localeCompare(b.name, "pl")),
+                users: [],
+            });
+        }
+    });
 
+    // 2. Użytkownicy trafiają do swojego działu
     state.users.forEach((user) => {
         const department = user.section?.department || UNASSIGNED;
         if (!groups.has(department)) {
-            groups.set(department, { users: [] });
+            groups.set(department, { id: undefined, subsections: [], users: [] });
         }
         groups.get(department).users.push(user);
     });
@@ -333,16 +324,15 @@ function renderGroups() {
     }
 
     container.innerHTML = [...groups]
-        .map(([name, group]) => groupHTML(name, group))
+        .map(([name, group]) => departmentHTML(name, group))
         .join("");
 
-    restoreFilters(savedFilters);
     applyFilters();
     window.scrollTo(0, scrollY);
 }
 
 /* =========================================================
-   WYSZUKIWANIE I FILTRY
+   WYSZUKIWANIE
    ========================================================= */
 
 function rowCells(row) {
@@ -352,56 +342,40 @@ function rowCells(row) {
     return row._cells;
 }
 
-function rowMatches(cells, department, filters, words) {
-    const rowText = `${cells.join(" ")} ${department}`;
-
-    if (!words.every((word) => rowText.includes(word))) return false;
-
-    return filters.every((filter, index) => {
-        if (!filter) return true;
-
-        const cell = cells[index];
-        if (cell === undefined) return false;
-
-        return COLUMNS[index]?.exact
-            ? cell === filter
-            : splitWords(filter).every((word) => cell.includes(word));
-    });
-}
-
 function filterGroup(group, words) {
-    const table = group.querySelector(".table-data");
-    const filters = [...table.querySelectorAll(".filter-input")].map((input) =>
-        normalize(input.value)
-    );
-    const hasColumnFilters = filters.some(Boolean);
+    const tables = group.querySelectorAll(".table-data");
     const department = normalize(group.dataset.dept);
-    const rows = [...table.querySelectorAll("tbody tr:not(.empty-row)")];
+    
+    let totalVisibleInGroup = 0;
 
-    let visible = 0;
+    tables.forEach((table) => {
+        const rows = [...table.querySelectorAll("tbody tr:not(.empty-row)")];
+        let visibleInTable = 0;
 
-    rows.forEach((row) => {
-        const match = rowMatches(rowCells(row), department, filters, words);
-        row.hidden = !match;
-        row.classList.toggle("search-match", match && words.length > 0);
-        if (match) visible++;
+        rows.forEach((row) => {
+            const rowText = `${rowCells(row).join(" ")} ${department}`;
+            const match = words.every((word) => rowText.includes(word));
+            row.hidden = !match;
+            row.classList.toggle("search-match", match && words.length > 0);
+            if (match) visibleInTable++;
+        });
+
+        const emptyRow = table.querySelector(".empty-row");
+        if (emptyRow) {
+            emptyRow.hidden = visibleInTable !== 0;
+            emptyRow.firstElementChild.textContent =
+                rows.length === 0
+                    ? "Brak użytkowników w tej sekcji"
+                    : "Brak wyników dla wyszukiwanej frazy";
+        }
+
+        totalVisibleInGroup += visibleInTable;
     });
 
-    const emptyRow = table.querySelector(".empty-row");
-    emptyRow.hidden = visible !== 0;
-    emptyRow.firstElementChild.textContent =
-        rows.length === 0
-            ? "Ten dział nie ma jeszcze użytkowników"
-            : "Brak wyników dla wybranych filtrów";
+    group.classList.toggle("no-results", totalVisibleInGroup === 0 && words.length > 0);
+    group.hidden = words.length > 0 && totalVisibleInGroup === 0;
 
-    group.classList.toggle(
-        "no-results",
-        rows.length > 0 && visible === 0 && (hasColumnFilters || words.length > 0)
-    );
-
-    group.hidden = words.length > 0 && visible === 0 && !hasColumnFilters;
-
-    return visible;
+    return totalVisibleInGroup;
 }
 
 function updateInfo(words, total, groupsCount) {
@@ -438,26 +412,33 @@ function applyFilters() {
 }
 
 function clearAllFilters() {
-    if (globalSearch) globalSearch.value = "";
-    container.querySelectorAll(".filter-input").forEach((input) => {
-        input.value = "";
-    });
+    if (globalSearch) {
+        globalSearch.value = "";
+        globalSearch.focus();
+    }
     applyFilters();
-    if (globalSearch) globalSearch.focus();
 }
 
 function initSearch() {
     if (globalSearch) globalSearch.addEventListener("input", applyFilters);
     if (clearSearch) clearSearch.addEventListener("click", clearAllFilters);
-
-    container.addEventListener("input", (event) => {
-        if (event.target.matches(".filter-input")) applyFilters();
-    });
 }
 
 /* =========================================================
    AKCJE W TABELACH
    ========================================================= */
+
+function getOrderedSections() {
+    const rank = new Map(state.sectionOrder.map((id, index) => [String(id), index]));
+
+    return [...state.sections].sort((a, b) => {
+        const ra = rank.has(String(a.id)) ? rank.get(String(a.id)) : Infinity;
+        const rb = rank.has(String(b.id)) ? rank.get(String(b.id)) : Infinity;
+
+        if (ra === rb) return a.department.localeCompare(b.department, "pl");
+        return ra < rb ? -1 : 1;
+    });
+}
 
 function initTableActions() {
     container.addEventListener("click", async (event) => {
